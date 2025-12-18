@@ -1,16 +1,171 @@
-from flask import Flask, request, jsonify, send_file
+from flask import Flask, request, jsonify
 from flask_cors import CORS
 from datetime import datetime
+import os
+import gspread
 import requests
+from google.oauth2.service_account import Credentials
+
 app = Flask(__name__)
 CORS(app)
 
 IMEI_API_BASE = 'http://api-client.imei.org/api'
+GOOGLE_SHEET_ID = os.environ.get('GOOGLE_SHEET_ID', '1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM')
+SHEET_NAME = 'Historial'
+# Configuración de Google Sheets
+SCOPES = [
+    'https://www.googleapis.com/auth/spreadsheets',
+    'https://www.googleapis.com/auth/drive'
+]
 
+# ============================================
+# FUNCIONES DE API GOOGLE SHEETS
+# ============================================
+
+def get_sheets_client():
+    """Obtiene el cliente de Google Sheets"""
+    try:
+        # Opción 1: Usar archivo de credenciales JSON
+        if os.path.exists('credentials.json'):
+            creds = Credentials.from_service_account_file(
+                'credentials.json',
+                scopes=SCOPES
+            )
+        # Opción 2: Usar variable de entorno (para deployment en Render)
+        elif os.environ.get('GOOGLE_CREDENTIALS_JSON'):
+            import json
+            creds_dict = json.loads(os.environ.get('GOOGLE_CREDENTIALS_JSON'))
+            creds = Credentials.from_service_account_info(
+                creds_dict,
+                scopes=SCOPES
+            )
+        else:
+            raise Exception('No se encontraron credenciales de Google')
+        
+        return gspread.authorize(creds)
+    except Exception as e:
+        print(f"Error al conectar con Google Sheets: {str(e)}")
+        return None
+    
+def inicializar_sheet():
+    """Crea el header del sheet si no existe"""
+    try:
+        client = get_sheets_client()
+        if not client:
+            return False
+        
+        sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(SHEET_NAME)
+        
+        # Verificar si ya tiene headers
+        first_row = sheet.row_values(1)
+        
+        if not first_row:
+            # Crear headers
+            headers = [
+                'Fecha Consulta',
+                'Input',
+                'Serial Number',
+                'Model',
+                'IMEI',
+                'IMEI2',
+                'Warranty Status',
+                'Purchase Date',
+                'Simlock',
+                'Carrier',
+                'iCloud Status',
+                'FMI Status',
+                'Activated',
+                'Blacklist'
+            ]
+            sheet.append_row(headers)
+            
+            # Formatear headers (bold)
+            sheet.format('A1:N1', {
+                'textFormat': {'bold': True},
+                'backgroundColor': {'red': 0.2, 'green': 0.5, 'blue': 0.8}
+            })
+            
+        return True
+    except Exception as e:
+        print(f"Error al inicializar sheet: {str(e)}")
+        return False
+    
+def agregar_al_sheet(device_info, input_value):
+    """Agrega una nueva fila al Google Sheet"""
+    try:
+        client = get_sheets_client()
+        if not client:
+            return False, "Error al conectar con Google Sheets"
+        
+        sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(SHEET_NAME)
+        
+        # Preparar nueva fila
+        nueva_fila = [
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+            input_value,
+            device_info.get('Serial Number', ''),
+            device_info.get('Model', ''),
+            device_info.get('IMEI', ''),
+            device_info.get('IMEI 2', device_info.get('IMEI2', '')),
+            device_info.get('Warranty Status', ''),
+            device_info.get('Estimated Purchase Date', ''),
+            device_info.get('Simlock', ''),
+            device_info.get('Carrier', device_info.get('Initial Carrier', '')),
+            device_info.get('iCloud', ''),
+            device_info.get('FMI', ''),
+            device_info.get('Activated', ''),
+            device_info.get('Blacklist Status', ''),
+        ]
+        
+        # Agregar fila al sheet
+        sheet.append_row(nueva_fila)
+        
+        # Obtener número total de filas (menos el header)
+        total_rows = len(sheet.get_all_values()) - 1
+        
+        return True, total_rows
+    except Exception as e:
+        print(f"Error al agregar al sheet: {str(e)}")
+        return False, str(e)
+    
+def obtener_stats_sheet():
+    """Obtiene estadísticas del Google Sheet"""
+    try:
+        client = get_sheets_client()
+        if not client:
+            return {
+                'total_consultas': 0,
+                'sheet_existe': False,
+                'error': 'No se pudo conectar con Google Sheets'
+            }
+        
+        sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(SHEET_NAME)
+        all_values = sheet.get_all_values()
+        
+        # Contar filas (menos header)
+        total_consultas = len(all_values) - 1 if len(all_values) > 0 else 0
+        
+        # Última consulta
+        ultima_consulta = None
+        if len(all_values) > 1:
+            ultima_fila = all_values[-1]
+            ultima_consulta = ultima_fila[0] if len(ultima_fila) > 0 else None
+        
+        return {
+            'total_consultas': total_consultas,
+            'sheet_existe': True,
+            'ultima_consulta': ultima_consulta,
+            'sheet_url': f'https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}'
+        }
+    except Exception as e:
+        return {
+            'total_consultas': 0,
+            'sheet_existe': False,
+            'error': str(e)
+        }
 # ============================================
 # FUNCIONES DE API IMEI.ORG
 # ============================================
-
 def verificar_balance_api(api_key):
     try:
         url = f"{IMEI_API_BASE}/balance"
@@ -160,8 +315,10 @@ def get_services():
 @app.route('/api/consultar', methods=['POST'])
 def consultar_dispositivo():
     data = request.json
+    if not data:
+        return jsonify({'error': 'Body JSON requerido'}), 400
     api_key = data.get('api_key')
-    service_id = data.get('service_id', '171')
+    service_id = data.get('service_id', '17')
     input_value = data.get('input_value')
     if not api_key or not service_id or not input_value:
         return jsonify({
@@ -169,9 +326,55 @@ def consultar_dispositivo():
             "message": "api_key, service_id e input_value son obligatorios"
         }), 400
     result = consultar_dispositivo_api(api_key, service_id, input_value)
+    if result['success']:
+        sheet_success, total_o_error = agregar_al_sheet(result['data'], input_value)
+        
+        if sheet_success:
+            result['sheet_updated'] = True
+            result['total_registros'] = total_o_error
+            result['sheet_url'] = f'https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}'
+        else:
+            result['sheet_updated'] = False
+            result['sheet_error'] = total_o_error
     return jsonify(result)
 
+@app.route('/api/sheet-stats', methods=['GET'])
+def sheet_stats():
+    """Obtiene estadísticas del Google Sheet"""
+    stats = obtener_stats_sheet()
+    return jsonify(stats)
+
+@app.route('/api/sheet-url', methods=['GET'])
+def get_sheet_url():
+    """Devuelve la URL del Google Sheet"""
+    return jsonify({
+        'url': f'https://docs.google.com/spreadsheets/d/{GOOGLE_SHEET_ID}',
+        'sheet_id': GOOGLE_SHEET_ID
+    })
+
 if __name__ == '__main__':
+    print("\n" + "="*70)
+    print("🚀 Backend Flask - Consultor IMEI con Google Sheets")
+    print("="*70)
+    print("📡 API REST: http://localhost:5000")
+    print(f"🔗 IMEI.org API: {IMEI_API_BASE}")
+    print(f"📊 Google Sheet ID: {GOOGLE_SHEET_ID}")
+    print("="*70)
+    print("\n📋 Inicializando Google Sheet...")
+    
+    if inicializar_sheet():
+        print("✅ Google Sheet inicializado correctamente")
+    else:
+        print("⚠️  No se pudo inicializar Google Sheet (verifica credenciales)")
+    
+    print("\n📋 Endpoints disponibles:")
+    print("   GET  /api/health          - Health check")
+    print("   POST /api/balance         - Verificar balance")
+    print("   POST /api/services        - Obtener servicios")
+    print("   POST /api/consultar       - Consultar y guardar en Sheet")
+    print("   GET  /api/sheet-stats     - Estadísticas del Sheet")
+    print("   GET  /api/sheet-url       - URL del Google Sheet")
+    print("="*70 + "\n")
     app.run(
         debug=True,
         host='0.0.0.0',
