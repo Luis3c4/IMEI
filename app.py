@@ -5,11 +5,15 @@ import os
 import gspread
 import requests
 from google.oauth2.service_account import Credentials
+import re
 
 app = Flask(__name__)
 CORS(app)
 
-IMEI_API_BASE = 'http://api-client.imei.org/api'
+DHRU_API_BASE = 'https://sickw.com/api.php'
+DHRU_API_KEY = '1PA-6X8-BMQ-T28-X6H-8WP-7CL-GTK'
+DHRU_API_USER = 'javie.apaza@gmail.com'
+
 GOOGLE_SHEET_ID = os.environ.get('GOOGLE_SHEET_ID', '1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM')
 SHEET_NAME = 'Historial'
 # Configuración de Google Sheets
@@ -55,43 +59,52 @@ def inicializar_sheet():
             return False
         
         sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(SHEET_NAME)
-        
-        # Verificar si ya tiene headers
         first_row = sheet.row_values(1)
         
         if not first_row:
-            # Crear headers
             headers = [
                 'Fecha Consulta',
-                'Input',
+                'Input Consultado',
                 'Serial Number',
-                'Model',
+                'Model Description',
                 'IMEI',
                 'IMEI2',
+                'MEID',
                 'Warranty Status',
                 'Purchase Date',
-                'Simlock',
-                'Carrier',
-                'iCloud Status',
-                'FMI Status',
-                'Activated',
-                'Blacklist'
+                'Purchase Country',
+                'Sim-Lock Status',
+                'Locked Carrier',
+                'iCloud Lock',
+                'Demo Unit',
+                'Loaner Device',
+                'Refurbished Device',
+                'Replaced Device',
+                'Replacement Device',
+                'Service ID',
+                'Order ID',
+                'Precio',
+                'Balance Restante'
             ]
             sheet.append_row(headers)
             
-            # Formatear headers (bold)
-            sheet.format('A1:N1', {
-                'textFormat': {'bold': True},
-                'backgroundColor': {'red': 0.2, 'green': 0.5, 'blue': 0.8}
+            # Formatear headers (bold y color)
+            sheet.format('A1:U1', {
+                'textFormat': {'bold': True, 'fontSize': 11},
+                'backgroundColor': {'red': 0.2, 'green': 0.6, 'blue': 0.9},
+                'horizontalAlignment': 'CENTER'
             })
+            
+            # Ajustar ancho de columnas
+            sheet.format('A1:U1', {'wrapStrategy': 'WRAP'})
             
         return True
     except Exception as e:
         print(f"Error al inicializar sheet: {str(e)}")
         return False
     
-def agregar_al_sheet(device_info, input_value):
-    """Agrega una nueva fila al Google Sheet"""
+def agregar_al_sheet(device_info, input_value, service_id, order_id='', precio='', balance=''):
+    """Agrega una nueva fila al Google Sheet con todos los datos de DHRU"""
     try:
         client = get_sheets_client()
         if not client:
@@ -99,29 +112,62 @@ def agregar_al_sheet(device_info, input_value):
         
         sheet = client.open_by_key(GOOGLE_SHEET_ID).worksheet(SHEET_NAME)
         
-        # Preparar nueva fila
+        # Construir fila con todos los campos de DHRU Fusion
         nueva_fila = [
-            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            input_value,
-            device_info.get('Serial Number', ''),
-            device_info.get('Model', ''),
-            device_info.get('IMEI', ''),
-            device_info.get('IMEI 2', device_info.get('IMEI2', '')),
-            device_info.get('Warranty Status', ''),
-            device_info.get('Estimated Purchase Date', ''),
-            device_info.get('Simlock', ''),
-            device_info.get('Carrier', device_info.get('Initial Carrier', '')),
-            device_info.get('iCloud', ''),
-            device_info.get('FMI', ''),
-            device_info.get('Activated', ''),
-            device_info.get('Blacklist Status', ''),
+            datetime.now().strftime('%Y-%m-%d %H:%M:%S'),           # Fecha Consulta
+            input_value,                                             # Input Consultado
+            device_info.get('Serial Number', ''),                    # Serial Number
+            device_info.get('Model Description', ''),                # Model Description
+            device_info.get('IMEI', ''),                             # IMEI
+            device_info.get('IMEI2', ''),                            # IMEI2
+            device_info.get('MEID', ''),                             # MEID
+            device_info.get('Warranty Status', ''),                  # Warranty Status
+            device_info.get('Estimated Purchase Date', ''),          # Purchase Date
+            device_info.get('Purchase Country', ''),                 # Purchase Country
+            device_info.get('Sim-Lock Status', ''),                  # Sim-Lock Status
+            device_info.get('Locked Carrier', ''),                   # Locked Carrier
+            device_info.get('iCloud Lock', ''),                      # iCloud Lock
+            device_info.get('Demo Unit', ''),                        # Demo Unit
+            device_info.get('Loaner Device', ''),                    # Loaner Device
+            device_info.get('Refurbished Device', ''),               # Refurbished Device
+            device_info.get('Replaced Device', ''),                  # Replaced Device
+            device_info.get('Replacement Device', ''),               # Replacement Device
+            service_id,                                              # Service ID
+            order_id,                                                # Order ID
+            precio,                                                  # Precio
+            balance                                                  # Balance Restante
         ]
         
-        # Agregar fila al sheet
         sheet.append_row(nueva_fila)
         
-        # Obtener número total de filas (menos el header)
-        total_rows = len(sheet.get_all_values()) - 1
+        # Aplicar formato a la fila recién agregada
+        ultima_fila = len(sheet.get_all_values())
+        
+        # Formato condicional para iCloud Lock
+        icloud_value = device_info.get('iCloud Lock', '')
+        if icloud_value == 'ON':
+            sheet.format(f'M{ultima_fila}', {
+                'backgroundColor': {'red': 1.0, 'green': 0.8, 'blue': 0.8},
+                'textFormat': {'bold': True}
+            })
+        elif icloud_value == 'OFF':
+            sheet.format(f'M{ultima_fila}', {
+                'backgroundColor': {'red': 0.8, 'green': 1.0, 'blue': 0.8},
+                'textFormat': {'bold': True}
+            })
+        
+        # Formato condicional para Sim-Lock Status
+        simlock_value = device_info.get('Sim-Lock Status', '')
+        if simlock_value == 'Unlocked':
+            sheet.format(f'K{ultima_fila}', {
+                'backgroundColor': {'red': 0.8, 'green': 1.0, 'blue': 0.8}
+            })
+        elif simlock_value == 'Locked':
+            sheet.format(f'K{ultima_fila}', {
+                'backgroundColor': {'red': 1.0, 'green': 0.8, 'blue': 0.8}
+            })
+        
+        total_rows = ultima_fila - 1  # Restar el header
         
         return True, total_rows
     except Exception as e:
@@ -164,120 +210,250 @@ def obtener_stats_sheet():
             'error': str(e)
         }
 # ============================================
-# FUNCIONES DE API IMEI.ORG
+# FUNCIONES DE API SICKW
 # ============================================
-def verificar_balance_api(api_key):
+def verificar_balance_dhru():
+    """Verifica el balance disponible en la cuenta DHRU"""
     try:
-        url = f"{IMEI_API_BASE}/balance"
-        params = {'apikey': api_key}
+        url = f"{DHRU_API_BASE}"
+        params = {
+            'action': 'balance',
+            'key': DHRU_API_KEY
+        }
+        
+        print(f"\n Verificando balance en DHRU...")
         response = requests.get(url, params=params, timeout=10)
-        data = response.json()
-        if data.get('status') == 1:
-            return {
-                'success': True,
-                'balance': data['response']['credits'],
-                'message': 'Balance obtenido correctamente'
-            }
-        else:
-            return {
-                'success': False,
-                'balance': 0,
-                'message': data.get('message', 'Error al obtener balance')
-            }
+        
+        # La respuesta es solo el número del balance
+        balance = float(response.text.strip())
+        
+        return {
+            'success': True,
+            'balance': balance,
+            'message': 'Balance obtenido correctamente'
+        }
     except Exception as e:
+        print(f"Error al obtener balance: {str(e)}")
         return {
             'success': False,
             'balance': 0,
             'message': f'Error de conexión: {str(e)}'
         }
-def obtener_servicios_api(api_key):
+
+def obtener_servicios_dhru():
+    """Obtiene la lista de servicios disponibles en DHRU"""
     try:
-        url = f"{IMEI_API_BASE}/services"
-        params = {'apikey': api_key}
+        url = f"{DHRU_API_BASE}"
+        params = {
+            'action': 'services',
+            'key': DHRU_API_KEY
+        }
+        
+        print(f"\n Obteniendo servicios de DHRU...")
         response = requests.get(url, params=params, timeout=10)
         data = response.json()
-        if data.get('status') == 1:
+        
+        if 'Service List' in data:
+            services = data['Service List']
             return {
                 'success': True,
-                'services': data['response']['services'],
+                'services': services,
+                'total': len(services),
                 'message': 'Servicios obtenidos correctamente'
             }
         else:
             return {
                 'success': False,
                 'services': [],
-                'message': data.get('message', 'Error al obtener servicios')
+                'message': 'No se encontraron servicios'
             }
     except Exception as e:
+        print(f" Error al obtener servicios: {str(e)}")
         return {
             'success': False,
             'services': [],
             'message': f'Error de conexión: {str(e)}'
         }
-def consultar_dispositivo_api(api_key, service_id, input_value):
-    """Consulta información de un dispositivo por IMEI o Serial"""
+    
+def parsear_resultado_dhru(texto, formato='json'):
+    """Parsea el resultado de DHRU y lo convierte a diccionario"""
+    resultado = {}
+    
+    if formato == 'html':
+        # Formato HTML: líneas separadas con saltos de línea
+        lineas = texto.strip().split('\n')
+        for linea in lineas:
+            if ':' in linea:
+                key, value = linea.split(':', 1)
+                resultado[key.strip()] = value.strip()
+    
+    return resultado
+
+
+def normalize_keys(obj):
+    """Recursively replace whitespace in dict keys with underscores.
+
+    Examples:
+    - 'Serial Number' -> 'Serial_Number'
+    - preserves nested dicts and lists
+    """
+    if isinstance(obj, dict):
+        new = {}
+        for k, v in obj.items():
+            # Only operate on string keys
+            if isinstance(k, str):
+                new_key = re.sub(r"\s+", "_", k.strip())
+            else:
+                new_key = k
+            new[new_key] = normalize_keys(v)
+        return new
+    elif isinstance(obj, list):
+        return [normalize_keys(i) for i in obj]
+    else:
+        return obj
+
+def consultar_dispositivo_dhru(service_id, imei, formato='beta'):
+    """
+    Consulta información de un dispositivo en DHRU Fusion
+    
+    Parámetros:
+    - service_id: ID del servicio a utilizar
+    - imei: IMEI o Serial Number del dispositivo
+    - formato: 'beta' (JSON completo), 'json' (JSON parcial), 'html' (texto simple)
+    """
     try:
-        url = f"{IMEI_API_BASE}/submit"
+        url = f"{DHRU_API_BASE}"
         params = {
-            'apikey': api_key,
-            'service_id': service_id,
-            'input': input_value
+            'format': formato,
+            'key': DHRU_API_KEY,
+            'imei': imei,
+            'service': service_id
         }
-        print("\n🔍 DEBUG - Consultando dispositivo:")
+        
+        print(f"\n DEBUG - Consultando dispositivo en DHRU:")
         print(f"   URL: {url}")
         print(f"   Service ID: {service_id}")
-        print(f"   Input: {input_value}")
-        print(f"   API Key: {api_key[:10]}...{api_key[-4:]}")
+        print(f"   IMEI: {imei}")
+        print(f"   Formato: {formato}")
+        
         response = requests.get(url, params=params, timeout=60)
         print(f"   Status Code: {response.status_code}")
-        print(f"   Response Text (primeros 300 chars): {response.text[:300]}")
+        print(f"   Response (primeros 500 chars): {response.text[:500]}")
         
-        data = response.json()
-        if data.get("status") != 1:
-            return {
-                "success": False,
-                "message": data.get("message", "Error en la consulta"),
-                "data": None,
-                "debug_response": data
-            }
+        # Parsear respuesta según formato
+        if formato == 'beta' or formato == 'json':
+            data = response.json()
+            
+            if data.get('status') == 'success':
+                # Extraer información del resultado
+                device_info = {}
+                
+                if formato == 'beta' and 'result' in data:
+                    # Formato BETA tiene el resultado en objeto JSON
+                    device_info = data['result']
+                elif formato == 'json' and 'result' in data:
+                    # Formato JSON tiene el resultado como string HTML
+                    device_info = parsear_resultado_dhru(data['result'], 'html')
+                
+                return {
+                    'success': True,
+                    'data': device_info,
+                    'raw_response': data,
+                    'balance_restante': data.get('balance', 'N/A'),
+                    'precio': data.get('price', 'N/A'),
+                    'order_id': data.get('id', 'N/A'),
+                    'message': 'Consulta exitosa'
+                }
+            elif data.get('status') == 'error':
+                return {
+                    'success': False,
+                    'data': None,
+                    'message': data.get('result', 'Error desconocido'),
+                    'raw_response': data
+                }
+            else:
+                return {
+                    'success': False,
+                    'data': None,
+                    'message': 'Respuesta inesperada de la API',
+                    'raw_response': data
+                }
         
-        if data.get('status') == 1 and 'response' in data:
-            device_info = data['response']['services'][0]
-            return {
-                'success': True,
-                'data': device_info,
-                'message': 'Consulta exitosa'
+        elif formato == 'html':
+            # Formato HTML devuelve texto plano
+            device_info = parsear_resultado_dhru(response.text, 'html')
+            
+            if device_info:
+                return {
+                    'success': True,
+                    'data': device_info,
+                    'raw_response': response.text,
+                    'message': 'Consulta exitosa'
                 }
-        else:
-            return {
-                'success': False,
-                'data': None,
-                'message': data.get('message', 'No se encontró información del dispositivo')
+            else:
+                return {
+                    'success': False,
+                    'data': None,
+                    'message': 'No se pudo parsear la respuesta',
+                    'raw_response': response.text
                 }
-    except requests.exceptions.JSONDecodeError:
-        print("❌ ERROR: La respuesta no es JSON válido")
-        print(f"   Response Text completo: {response.text}")
-        return {
-            'success': False,
-            'data': None,
-            'message': f'La API no devolvió JSON válido. Respuesta: {response.text[:200]}',
-            'error_type': 'JSONDecodeError',
-            'status_code': response.status_code
-        }
+        
     except requests.exceptions.Timeout:
         return {
             'success': False,
             'data': None,
             'message': 'Timeout: La consulta tardó más de 60 segundos'
         }
+    except requests.exceptions.JSONDecodeError:
+        return {
+            'success': False,
+            'data': None,
+            'message': f'La API no devolvió JSON válido. Respuesta: {response.text[:200]}',
+            'error_type': 'JSONDecodeError'
+        }
     except Exception as e:
-        print(f"❌ ERROR: {str(e)}")
+        print(f" ERROR: {str(e)}")
         return {
             'success': False,
             'data': None,
             'message': f'Error de conexión: {str(e)}',
             'error_type': type(e).__name__
         }
+
+def buscar_historial_dhru(imei_o_order_id, formato='beta'):
+    """Busca en el historial de órdenes por IMEI o Order ID"""
+    try:
+        url = f"{DHRU_API_BASE}"
+        params = {
+            'format': formato,
+            'key': DHRU_API_KEY,
+            'imei': imei_o_order_id,
+            'action': 'history'
+        }
+        
+        print(f"\n Buscando en historial: {imei_o_order_id}")
+        response = requests.get(url, params=params, timeout=30)
+        
+        if formato == 'beta' or formato == 'json':
+            data = response.json()
+            return {
+                'success': True,
+                'data': data,
+                'message': 'Historial obtenido'
+            }
+        else:
+            return {
+                'success': True,
+                'data': response.text,
+                'message': 'Historial obtenido'
+            }
+    except Exception as e:
+        return {
+            'success': False,
+            'data': None,
+            'message': f'Error: {str(e)}'
+        }
+    
 
 # ============================================
 # endpoints de la API
@@ -288,47 +464,60 @@ def health_check():
     return jsonify({
         'status': 'ok',
         'message': 'Servidor funcionando correctamente',
+        'api_provider': 'DHRU Fusion (sickw.com)',
         'timestamp': datetime.now().isoformat()
     })
 @app.route('/api/balance', methods=['POST'])
 def check_balance():
     """Endpoint para verificar balance"""
-    data = request.json
-    api_key = data.get('api_key')
-    
-    if not api_key:
-        return jsonify({'error': 'API key requerida'}), 400
-    
-    result = verificar_balance_api(api_key)
+    result = verificar_balance_dhru()
     return jsonify(result)
 @app.route('/api/services', methods=['POST'])
 def get_services():
     """Endpoint para obtener servicios disponibles"""
-    data = request.json
-    api_key = data.get('api_key')
-    
-    if not api_key:
-        return jsonify({'error': 'API key requerida'}), 400
-    
-    result = obtener_servicios_api(api_key)
+    result = obtener_servicios_dhru()
     return jsonify(result)
+
 @app.route('/api/consultar', methods=['POST'])
 def consultar_dispositivo():
     data = request.json
+    
     if not data:
         return jsonify({'error': 'Body JSON requerido'}), 400
-    api_key = data.get('api_key')
-    service_id = data.get('service_id', '17')
+    
+    service_id = data.get('service_id', '30')  # Default: iCLOUD ON/OFF
     input_value = data.get('input_value')
-    if not api_key or not service_id or not input_value:
+    formato = data.get('formato', 'beta')  # beta, json o html
+    
+    if not input_value:
         return jsonify({
-            "success": False,
-            "message": "api_key, service_id e input_value son obligatorios"
+            'success': False,
+            'message': 'input_value es obligatorio (IMEI o Serial)'
         }), 400
-    result = consultar_dispositivo_api(api_key, service_id, input_value)
-    if result['success']:
-        sheet_success, total_o_error = agregar_al_sheet(result['data'], input_value)
-        
+    
+    # Consultar en DHRU
+    result = consultar_dispositivo_dhru(service_id, input_value, formato)
+    
+    # Si fue exitoso, guardar en Google Sheet
+    if result['success'] and result['data']:
+        # Preserve the original data for internal use (Google Sheet),
+        # but return a normalized version to the frontend (no spaces in keys).
+        raw_device_info = result['data']
+        sheet_success, total_o_error = agregar_al_sheet(
+            device_info=raw_device_info,
+            input_value=input_value,
+            service_id=service_id,
+            order_id=result.get('order_id', ''),
+            precio=result.get('precio', ''),
+            balance=result.get('balance_restante', '')
+        )
+        # Normalize keys for the response sent to the frontend
+        try:
+            normalized = normalize_keys(raw_device_info)
+            result['data'] = normalized
+        except Exception:
+            # If normalization fails for any reason, leave original data
+            pass
         if sheet_success:
             result['sheet_updated'] = True
             result['total_registros'] = total_o_error
@@ -336,7 +525,29 @@ def consultar_dispositivo():
         else:
             result['sheet_updated'] = False
             result['sheet_error'] = total_o_error
+    
     return jsonify(result)
+
+@app.route('/api/historial', methods=['POST'])
+def buscar_historial():
+    """Endpoint para buscar en historial de órdenes"""
+    data = request.json
+    
+    if not data:
+        return jsonify({'error': 'Body JSON requerido'}), 400
+    
+    imei_o_order = data.get('imei_o_order_id')
+    formato = data.get('formato', 'beta')
+    
+    if not imei_o_order:
+        return jsonify({
+            'success': False,
+            'message': 'imei_o_order_id es obligatorio'
+        }), 400
+    
+    result = buscar_historial_dhru(imei_o_order, formato)
+    return jsonify(result)
+
 
 @app.route('/api/sheet-stats', methods=['GET'])
 def sheet_stats():
@@ -354,20 +565,20 @@ def get_sheet_url():
 
 if __name__ == '__main__':
     print("\n" + "="*70)
-    print("🚀 Backend Flask - Consultor IMEI con Google Sheets")
+    print("Backend Flask - Consultor IMEI con Google Sheets")
     print("="*70)
-    print("📡 API REST: http://localhost:5000")
-    print(f"🔗 IMEI.org API: {IMEI_API_BASE}")
-    print(f"📊 Google Sheet ID: {GOOGLE_SHEET_ID}")
+    print(" API REST: http://localhost:5000")
+    print(f" DHRU API: {DHRU_API_BASE}")
+    print(f" Google Sheet ID: {GOOGLE_SHEET_ID}")
     print("="*70)
-    print("\n📋 Inicializando Google Sheet...")
+    print("\n Inicializando Google Sheet...")
     
     if inicializar_sheet():
-        print("✅ Google Sheet inicializado correctamente")
+        print(" Google Sheet inicializado correctamente")
     else:
-        print("⚠️  No se pudo inicializar Google Sheet (verifica credenciales)")
+        print("  No se pudo inicializar Google Sheet (verifica credenciales)")
     
-    print("\n📋 Endpoints disponibles:")
+    print("\n Endpoints disponibles:")
     print("   GET  /api/health          - Health check")
     print("   POST /api/balance         - Verificar balance")
     print("   POST /api/services        - Obtener servicios")
