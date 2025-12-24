@@ -563,31 +563,31 @@ def get_sheet_url():
         'sheet_id': GOOGLE_SHEET_ID
     })
 
-if __name__ == '__main__':
-    print("\n" + "="*70)
-    print("Backend Flask - Consultor IMEI con Google Sheets")
-    print("="*70)
-    print(" API REST: http://localhost:5000")
-    print(f" DHRU API: {DHRU_API_BASE}")
-    print(f" Google Sheet ID: {GOOGLE_SHEET_ID}")
-    print("="*70)
-    print("\n Inicializando Google Sheet...")
+# if __name__ == '__main__':
+#     print("\n" + "="*70)
+#     print("Backend Flask - Consultor IMEI con Google Sheets")
+#     print("="*70)
+#     print(" API REST: http://localhost:5000")
+#     print(f" DHRU API: {DHRU_API_BASE}")
+#     print(f" Google Sheet ID: {GOOGLE_SHEET_ID}")
+#     print("="*70)
+#     print("\n Inicializando Google Sheet...")
     
-    if inicializar_sheet():
-        print(" Google Sheet inicializado correctamente")
-    else:
-        print("  No se pudo inicializar Google Sheet (verifica credenciales)")
+#     if inicializar_sheet():
+#         print(" Google Sheet inicializado correctamente")
+#     else:
+#         print("  No se pudo inicializar Google Sheet (verifica credenciales)")
     
-    print("\n Endpoints disponibles:")
-    print("   GET  /api/health          - Health check")
-    print("   POST /api/balance         - Verificar balance")
-    print("   POST /api/services        - Obtener servicios")
-    print("   POST /api/consultar       - Consultar y guardar en Sheet")
-    print("   GET  /api/sheet-stats     - Estadísticas del Sheet")
-    print("   GET  /api/sheet-url       - URL del Google Sheet")
-    print("="*70 + "\n")
-    app.run(
-        debug=True,
-        host='0.0.0.0',
-        port=5000
-    )
+#     print("\n Endpoints disponibles:")
+#     print("   GET  /api/health          - Health check")
+#     print("   POST /api/balance         - Verificar balance")
+#     print("   POST /api/services        - Obtener servicios")
+#     print("   POST /api/consultar       - Consultar y guardar en Sheet")
+#     print("   GET  /api/sheet-stats     - Estadísticas del Sheet")
+#     print("   GET  /api/sheet-url       - URL del Google Sheet")
+#     print("="*70 + "\n")
+#     app.run(
+#         debug=True,
+#         host='0.0.0.0',
+#         port=5000
+#     )
