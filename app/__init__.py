@@ -1,38 +1,36 @@
-from flask import Flask
-from flask_cors import CORS
+"""
+IMEI API Application Package
+FastAPI Application Factory
+"""
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
 
 def create_app(config_name='default'):
     """
-    Crea y configura la aplicación Flask
+    Crea y configura la aplicación FastAPI
     
     Args:
-        config_name: Nombre de la configuración a usar
+        config_name: Nombre de la configuración a usar (development, production, testing)
         
     Returns:
-        Flask app configurada
+        FastAPI: Aplicación configurada
     """
-    app = Flask(__name__)
     
-    # Cargar configuración
-    from .config import config
-    app.config.from_object(config[config_name])
+    app = FastAPI(
+        title="IMEI API",
+        description="Sistema de consulta de información de dispositivos por IMEI",
+        version="2.0.0"
+    )
     
-    # Configurar CORS
-    CORS(app)
-    
-    # Registrar blueprints
-    from .routes import register_blueprints
-    register_blueprints(app)
-    
-    # Inicializar Google Sheets
-    from .services.sheets_service import SheetsService
-    sheets_service = SheetsService()
-    
-    with app.app_context():
-        result = sheets_service.initialize_sheet()
-        if result['success']:
-            print(" Google Sheet inicializado correctamente")
-        else:
-            print(" No se pudo inicializar Google Sheet")
+    # CORS Configuration
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     
     return app

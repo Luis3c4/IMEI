@@ -1,106 +1,200 @@
-from flask import Blueprint, request, jsonify
-from ..services.dhru_service import DHRUService
-from ..services.sheets_service import SheetsService
+"""
+Device Routes - Endpoints para consulta de dispositivos
+Maneja todas las peticiones relacionadas con consulta de IMEI
+"""
+
+import logging
+from fastapi import APIRouter, HTTPException
+from app.schemas import (
+    QueryDeviceRequest, QueryDeviceResponse, ErrorResponse,
+    BalanceResponse, ServicesResponse, HistoryRequest, HistoryResponse
+)
+from app.services.dhru_service import DHRUService
+from app.services.sheets_service import SheetsService
 from app.utils.validators import DeviceInputValidator
-from ..utils.parsers import normalize_keys
+from app.utils.parsers import normalize_keys
 
-devices_bp = Blueprint('devices', __name__)
+logger = logging.getLogger(__name__)
+
+router = APIRouter()
 dhru_service = DHRUService()
-sheets = SheetsService()
+sheets_service = SheetsService()
 
-@devices_bp.route('/consultar', methods=['POST'])
-def query_device():
 
-    data = request.json
-    if not data or not data.get('input_value'):
-        return jsonify({'error': 'input_value requerido'}), 400
+@router.post(
+    "/consultar",
+    response_model=QueryDeviceResponse,
+    summary="Consultar información de dispositivo",
+    responses={
+        200: {"description": "Consulta exitosa"},
+        400: {"model": ErrorResponse, "description": "Error en validación"}
+    }
+)
+async def query_device(request: QueryDeviceRequest):
+    """
+    Consulta información detallada de un dispositivo usando su IMEI
     
-     # 1. VALIDAR INPUT
-    validation = DeviceInputValidator.validate(data.get('input_value'))
+    **Parámetros:**
+    - **input_value** (str): IMEI del dispositivo (requerido)
+    - **service_id** (str): ID del servicio DHRU (default: 30)
+    - **formato** (str): Formato de respuesta - beta, json, html (default: beta)
+    
+    **Respuesta:**
+    - success: bool - Indica si la consulta fue exitosa
+    - data: dict - Información del dispositivo
+    - balance: float - Balance actual de la cuenta
+    - price: float - Precio de la consulta
+    - order_id: str - ID del pedido
+    - sheet_updated: bool - Si se guardó en Google Sheets
+    
+    **Errores:**
+    - 400: IMEI inválido o formato incorrecto
+    """
+    
+    # 1. VALIDAR INPUT
+    validation = DeviceInputValidator.validate(request.input_value)
     if not validation['valid']:
-        return jsonify({
-            'success': False,
-            'message': validation['message']
-        }), 400    
+        raise HTTPException(
+            status_code=400,
+            detail=validation['message']
+        )
     
-    # Consultar DHRU
-    result = dhru_service.query_device(
-        service_id=data.get('service_id', '30'),
-        imei=data['input_value'],
-        format=data.get('formato', 'beta')
-    )
+    # 2. CONSULTAR DHRU
+    try:
+        result = dhru_service.query_device(
+            service_id=request.service_id,
+            imei=request.input_value,
+            format=request.formato
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error consultando DHRU: {str(e)}"
+        )
     
-    # Guardar en Sheets si exitoso
+    # 3. GUARDAR EN GOOGLE SHEETS si fue exitoso
     if result['success']:
         result['data'] = normalize_keys(result['data'])
-        sheets_result = sheets.add_record(
-            device_info=result['data'],
-            metadata={
-                'input_value': data['input_value'],
-                'service_id': data.get('service_id', '30'),
-                'order_id': result.get('order_id'),
-                'price': result.get('price'),
-                'balance': result.get('balance')
-            }
-        )
-        result['sheet_updated'] = sheets_result['success']
-        if sheets_result['success']:
-            result['total_registros'] = sheets_result.get('total_records', 0)
-            result['sheet_url'] = sheets_result.get('sheet_url')
-        else:
-            result['sheet_error'] = sheets_result.get('error')
+        
+        try:
+            sheets_result = sheets_service.add_record(
+                device_info=result['data'],
+                metadata={
+                    'input_value': request.input_value,
+                    'service_id': request.service_id,
+                    'order_id': result.get('order_id'),
+                    'price': result.get('price'),
+                    'balance': result.get('balance')
+                }
+            )
+            result['sheet_updated'] = sheets_result['success']
+            if sheets_result['success']:
+                result['total_registros'] = sheets_result.get('total_records', 0)
+                result['sheet_url'] = f"https://docs.google.com/spreadsheets/d/{sheets_service.sheet_id}"
+        except Exception as e:
+            # Si falla Google Sheets, no bloqueamos la respuesta
+            result['sheet_updated'] = False
+            result['sheet_error'] = str(e)
     
-    return jsonify(result)
+    return result
 
-@devices_bp.route('/balance', methods=['POST', 'GET'])
-def check_balance():
+
+@router.get(
+    "/balance",
+    response_model=BalanceResponse,
+    summary="Obtener balance de cuenta"
+)
+async def get_balance():
     """
-    Verifica el balance disponible en la cuenta DHRU
+    Obtiene el balance disponible en la cuenta DHRU
     
-    Métodos: POST, GET
-    
-    Respuesta:
-    {
-        "success": true,
-        "balance": 150.50,
-        "message": "Balance obtenido correctamente"
-    }
+    **Respuesta:**
+    - success: bool - True si se obtuvo el balance
+    - balance: float - Monto disponible en la cuenta
+    - message: str - Mensaje descriptivo
     """
-    result = dhru_service.get_balance()
-    return jsonify(result)
-@devices_bp.route('/services', methods=['POST', 'GET'])
-def get_services():
+    try:
+        result = dhru_service.get_balance()
+        if result['success']:
+            result['message'] = "Balance obtenido correctamente"
+        else:
+            result['message'] = result.get('error', 'Error obteniendo balance')
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error obteniendo balance: {str(e)}"
+        )
+
+
+@router.get(
+    "/services",
+    response_model=ServicesResponse,
+    summary="Obtener servicios disponibles"
+)
+async def get_services():
     """
     Obtiene la lista de servicios disponibles en DHRU
     
-    Métodos: POST, GET
+    **Respuesta:**
+    - success: bool - True si se obtuvieron los servicios
+    - services: list - Lista de servicios disponibles
+    - total: int - Total de servicios
+    - message: str - Mensaje descriptivo
     
-    Respuesta:
+    **Ejemplo de servicio:**
+    ```json
     {
-        "success": true,
-        "services": [
-            {"id": "30", "name": "iCloud Status", "price": "0.50"},
-            ...
-        ],
-        "total": 50,
-        "message": "Servicios obtenidos correctamente"
+        "id": "30",
+        "name": "iCloud Status",
+        "price": "0.50"
     }
+    ```
     """
-    result = dhru_service.get_services()
-    return jsonify(result)
+    try:
+        logger.info("Consultando servicios DHRU...")
+        result = dhru_service.get_services()
+        logger.info(f"Resultado de servicios: success={result.get('success')}")
+        
+        if result['success']:
+            result['total'] = len(result.get('services', []))
+            result['message'] = "Servicios obtenidos correctamente"
+        else:
+            # En caso de error, asegurar que los campos opcionales existan
+            error_msg = result.get('error', 'Error obteniendo servicios')
+            logger.error(f"Error obteniendo servicios: {error_msg}")
+            result['services'] = []
+            result['total'] = 0
+            result['message'] = error_msg
+        return result
+    except Exception as e:
+        logger.error(f"Excepción en get_services: {str(e)}", exc_info=True)
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error obteniendo servicios: {str(e)}"
+        )
 
-@devices_bp.route('/historial', methods=['POST'])
-def search_history():
+
+@router.post(
+    "/historial",
+    response_model=HistoryResponse,
+    summary="Buscar en historial de órdenes"
+)
+async def search_history(request: HistoryRequest):
     """
-    Busca en el historial de órdenes por IMEI o Order ID
+    Busca en el historial de órdenes usando IMEI u Order ID
     
-    Body JSON:
-    {
-        "imei_o_order_id": "356789012345678",  // IMEI o Order ID
-        "formato": "beta"                       // Opcional: beta, json, html
-    }
+    **Parámetros:**
+    - **imei_o_order_id** (str): IMEI u Order ID a buscar (requerido)
+    - **formato** (str): Formato de respuesta - beta, json, html (default: beta)
     
-    Respuesta:
+    **Respuesta:**
+    - success: bool - True si se encontraron registros
+    - data: dict - Datos del historial encontrado
+    - message: str - Mensaje descriptivo
+    
+    **Ejemplo de respuesta:**
+    ```json
     {
         "success": true,
         "data": {
@@ -117,24 +211,29 @@ def search_history():
         },
         "message": "Historial obtenido"
     }
+    ```
     """
-    data = request.json
     
-    # Validación
-    if not data or not data.get('imei_o_order_id'):
-        return jsonify({
-            'success': False,
-            'error': 'imei_o_order_id es requerido'
-        }), 400
+    if not request.imei_o_order_id:
+        raise HTTPException(
+            status_code=400,
+            detail="imei_o_order_id es requerido"
+        )
     
-    # Buscar en historial
-    result = dhru_service.search_history(
-        imei_or_order=data.get('imei_o_order_id'),
-        format=data.get('formato', 'beta')
-    )
-    
-    # Normalizar keys si hay datos
-    if result['success'] and result.get('data'):
-        result['data'] = normalize_keys(result['data'])
-    
-    return jsonify(result)
+    try:
+        result = dhru_service.search_history(
+            imei_or_order=request.imei_o_order_id,
+            format=request.formato
+        )
+        
+        # Normalizar keys si hay datos
+        if result['success'] and result.get('data'):
+            result['data'] = normalize_keys(result['data'])
+        
+        return result
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error buscando en historial: {str(e)}"
+        )
+

@@ -1,7 +1,11 @@
 from typing import Dict, Any
 import requests
+import logging
 from ..config import settings
 from app.utils.parsers import normalize_keys
+
+# Configurar logging
+logger = logging.getLogger(__name__)
 
 class DHRUService:
     """Servicio para manejar todas las interacciones con DHRU API"""
@@ -66,23 +70,59 @@ class DHRUService:
     def get_services(self) -> Dict[str, Any]:
         """Obtiene lista de servicios disponibles"""
         try:
+            logger.info(f"Consultando servicios DHRU: {self.base_url}")
             response = requests.get(
                 self.base_url,
                 params={'action': 'services', 'key': self.api_key},
                 timeout=10
             )
-            data = response.json()
+            
+            # Log del status code
+            logger.info(f"Status code: {response.status_code}")
+            
+            # Intentar parsear JSON
+            try:
+                data = response.json()
+                logger.info(f"Respuesta JSON recibida con {len(str(data))} caracteres")
+            except ValueError as e:
+                logger.error(f"Error parseando JSON. Respuesta raw: {response.text[:500]}")
+                return {
+                    'success': False,
+                    'error': f'Respuesta no es JSON válido: {response.text[:100]}'
+                }
+            
+            # DHRU devuelve la lista con la key "Service List"
+            if 'Service List' in data:
+                services = data['Service List']
+                logger.info(f"Servicios obtenidos correctamente: {len(services)} servicios")
+                return {
+                    'success': True,
+                    'services': services
+                }
+            
+            # Si tiene formato estándar con status
             if data.get('status') == 'success':
                 return {
                     'success': True,
                     'services': data.get('services', [])
                 }
+            
+            # Log del error específico
+            error_msg = data.get('result', data.get('message', 'Error desconocido'))
+            logger.error(f"Error de API DHRU: {error_msg}")
             return {
                 'success': False,
-                'error': data.get('result', 'Error desconocido')
+                'error': error_msg
             }
+        except requests.Timeout:
+            logger.error("Timeout al consultar servicios DHRU")
+            return {'success': False, 'error': 'Timeout de 10 segundos excedido'}
+        except requests.RequestException as e:
+            logger.error(f"Error de conexión con DHRU: {str(e)}")
+            return {'success': False, 'error': f'Error de conexión: {str(e)}'}
         except Exception as e:
-            return {'success': False, 'error': str(e)}
+            logger.error(f"Error inesperado: {str(e)}", exc_info=True)
+            return {'success': False, 'error': f'Error inesperado: {str(e)}'}
 
     def search_history(self, imei_or_order: str, format: str = 'beta') -> Dict[str, Any]:
         """Busca en el historial de consultas"""
