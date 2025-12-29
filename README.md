@@ -10,17 +10,32 @@ Esta aplicación permite:
 - **Registrar historial de consultas** en Google Sheets
 - **Obtener servicios disponibles** para la consulta
 - **Buscar en historial** de consultas previas
+- **Generar facturas en PDF** estilo Apple Store con Weasyprint
 - **Documentación automática** con Swagger UI
 
 ## 🚀 Instalación
+
+### ⚠️ Usuarios de WSL/Ubuntu
+**Si estás usando WSL, sigue esta guía:** [INSTALL_WSL.md](INSTALL_WSL.md)
+
+El proyecto usa **Weasyprint** para generar PDFs, que requiere dependencias del sistema. La instalación en WSL es diferente a Windows/macOS.
 
 ### Requisitos Previos
 - Python 3.10+
 - pip (gestor de paquetes de Python)
 - Credenciales de Google Cloud (archivo JSON)
 - Clave API de DHRU
+- **WSL/Ubuntu**: Bibliotecas del sistema para Weasyprint
 
-### Pasos de Instalación
+### Instalación Rápida en WSL
+
+```bash
+# Dar permisos y ejecutar script de instalación
+chmod +x install_dependencies.sh
+./install_dependencies.sh
+```
+
+### Instalación Manual
 
 1. **Clonar el repositorio**
 ```bash
@@ -28,21 +43,31 @@ git clone <repo-url>
 cd IMEI
 ```
 
-2. **Crear entorno virtual** (opcional pero recomendado)
+2. **Instalar dependencias del sistema (Solo WSL/Ubuntu)**
 ```bash
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# macOS/Linux
-source venv/bin/activate
+sudo apt-get update
+sudo apt-get install -y libcairo2 libpango-1.0-0 libpangocairo-1.0-0 libgdk-pixbuf2.0-0 libffi-dev
 ```
 
-3. **Instalar dependencias**
+3. **Crear entorno virtual**
 ```bash
+python3 -m venv venv
+source venv/bin/activate  # WSL/Linux/macOS
+# venv\Scripts\activate  # Windows
+```
+
+4. **Instalar dependencias Python**
+```bash
+pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-4. **Configurar variables de entorno**
+5. **Validar instalación**
+```bash
+python validate_dependencies.py
+```
+
+6. **Configurar variables de entorno**
 Crear archivo `.env` en la raíz del proyecto:
 ```env
 DHRU_API_KEY=tu_api_key

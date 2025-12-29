@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Apple Store Invoice Receipt</title>
+    <style>
+        @page {
+            size: A4;
+            margin: 2cm 2.5cm;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Arial, sans-serif;
+            font-size: 9pt;
+            color: #000;
+            line-height: 1.3;
+        }
+        
+        /* Header Section */
+        .header {
+            margin-bottom: 25px;
+        }
+        
+        .apple-logo {
+            font-size: 13pt;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 1px;
+            letter-spacing: -0.3px;
+        }
+        .logo-container {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            margin-bottom: 1px;
+        }
+        .apple-logo-img {
+            height: 22px;
+            width: auto;
+            margin-right: 6px;
+            vertical-align: middle;
+        }
+        .apple-logo-text {
+            font-size: 13pt;
+            font-weight: 700;
+            color: #000;
+            letter-spacing: -0.3px;
+            white-space: nowrap;
+            display: inline-block;
+        }
+        .apple-logo::before {
+            content: "";
+            display: inline-block;
+            font-size: 15pt;
+            margin-right: 2px;
+        }
+        
+        .invoice-title {
+            font-size: 9pt;
+            font-weight: 500;
+            color: #000;
+            margin-bottom: 15px;
+        }
+        
+        .do-not-pay-badge {
+            display: inline-block;
+            border: 1px solid #000;
+            padding: 2px 8px;
+            font-size: 8pt;
+            font-weight: 400;
+            margin-bottom: 20px;
+        }
+        
+        /* Info Grid */
+        .info-container {
+            display: table;
+            width: 100%;
+            margin-bottom: 25px;
+        }
+        
+        .info-left,
+        .info-right {
+            display: table-cell;
+            width: 50%;
+            vertical-align: top;
+            padding-right: 30px;
+        }
+        
+        .info-right {
+            padding-right: 0;
+            padding-left: 30px;
+        }
+        
+        .info-label {
+            font-size: 8.5pt;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 2px;
+        }
+        
+        .info-value {
+            font-size: 8.5pt;
+            font-weight: 400;
+            color: #000;
+            margin-bottom: 1px;
+            line-height: 1.4;
+        }
+        
+        .info-block {
+            margin-bottom: 15px;
+        }
+        
+        .customer-label {
+            font-size: 8pt;
+            font-weight: 400;
+            color: #000;
+            margin-top: 15px;
+            margin-bottom: 2px;
+        }
+        
+        /* Order Details Table */
+        .section-title {
+            font-size: 9pt;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 8px;
+            margin-top: 5px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 0;
+        }
+        
+        thead tr {
+            border-bottom: 1px solid #000;
+        }
+        
+        th {
+            text-align: left;
+            padding: 6px 4px 6px 0;
+            font-size: 8pt;
+            font-weight: 600;
+            color: #000;
+        }
+        
+        th.align-right {
+            text-align: right;
+            padding-right: 0;
+        }
+        
+        th.align-center {
+            text-align: center;
+        }
+        
+        td {
+            padding: 8px 4px 8px 0;
+            font-size: 8.5pt;
+            color: #000;
+            vertical-align: top;
+        }
+        
+        td.align-right {
+            text-align: right;
+            padding-right: 0;
+        }
+        
+        td.align-center {
+            text-align: center;
+        }
+        
+        .product-name {
+            font-weight: 400;
+            margin-bottom: 2px;
+            line-height: 1.3;
+        }
+        
+        .serial-line {
+            font-size: 8pt;
+            color: #000;
+            font-weight: 400;
+            margin-top: 2px;
+        }
+        
+        /* Totals Section */
+        .totals-wrapper {
+            margin-top: 15px;
+            padding-top: 10px;
+        }
+        
+        .totals-section {
+            float: right;
+            width: 280px;
+        }
+        
+        .total-line {
+            display: flex;
+            justify-content: space-between;
+            padding: 3px 0;
+            font-size: 8.5pt;
+        }
+        
+        .total-line.total-main {
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 5px 0;
+            margin: 3px 0;
+            font-weight: 600;
+        }
+        
+        .total-line.amount-due {
+            padding-top: 5px;
+        }
+        
+        /* Payment Methods */
+        .payment-section {
+            clear: both;
+            margin-top: 25px;
+            padding-top: 15px;
+            border-top: 1px solid #000;
+        }
+        
+        .payment-title {
+            font-size: 9pt;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 5px;
+        }
+        
+        .payment-detail {
+            font-size: 8.5pt;
+            color: #000;
+            margin-bottom: 2px;
+        }
+        
+        /* Additional Information */
+        .additional-info {
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 1px solid #000;
+        }
+        
+        .info-grid-bottom {
+            display: table;
+            width: 100%;
+            margin-top: 8px;
+        }
+        
+        .info-col {
+            display: table-cell;
+            width: 33.33%;
+            vertical-align: top;
+            padding-right: 20px;
+        }
+        
+        .info-col:last-child {
+            padding-right: 0;
+        }
+        
+        .info-col-label {
+            font-size: 8.5pt;
+            font-weight: 600;
+            color: #000;
+            margin-bottom: 2px;
+        }
+        
+        .info-col-value {
+            font-size: 8.5pt;
+            font-weight: 400;
+            color: #000;
+        }
+        
+        /* Footer */
+        .footer {
+            margin-top: 20px;
+            font-size: 8pt;
+            color: #000;
+            line-height: 1.4;
+        }
+        
+        .footer a {
+            color: #0066cc;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="logo-container">
+            <img src="assets/apple.png" alt="Apple Logo" class="apple-logo-img">
+            <span class="apple-logo-text">Apple Store</span>
+        </div>
+        <div class="invoice-title">Invoice Receipt</div>
+        <div class="do-not-pay-badge">Do Not Pay</div>
+    </div>
+    
+    <!-- Info Section -->
+    <div class="info-container">
+        <div class="info-left">
+            <div class="info-block">
+                <div class="info-label">Order Number:</div>
+                <div class="info-value">W1351042737</div>
+            </div>
+            
+            <div class="info-block">
+                <div class="info-label">Sold To:</div>
+                <div class="info-value">Geraldine Eva Flores Flores</div>
+                <div class="info-value">3410 SE Stott Cir Troutdale OR 97060-2559</div>
+                <div class="info-value">United States</div>
+            </div>
+            
+            <div class="customer-label">Customer No: 900007</div>
+        </div>
+        
+        <div class="info-right">
+            <div class="info-block">
+                <div class="info-label">Order Date:</div>
+                <div class="info-value">September 04, 2025</div>
+            </div>
+            
+            <div class="info-block">
+                <div class="info-label">Location:</div>
+                <div class="info-value">Apple Pioneer Place</div>
+                <div class="info-value">450 SW Yamhill Street</div>
+                <div class="info-value">PORTLAND OR 97204-2007</div>
+                <div class="info-value">United States</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Order Details -->
+    <div class="section-title">Order Details</div>
+    
+    <table>
+        <thead>
+            <tr>
+                <th style="width: 28%;">Product Name</th>
+                <th style="width: 17%;">Product Number</th>
+                <th class="align-right" style="width: 11%;">Item Price</th>
+                <th class="align-center" style="width: 11%;">Quantity Ordered</th>
+                <th class="align-center" style="width: 11%;">Quantity Fulfilled</th>
+                <th class="align-right" style="width: 11%;">Extended Price</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>
+                    <div class="product-name">IPAD MINI 8.3 WIFI 128GB PURPLE - USA</div>
+                    <div class="serial-line">Serial No.: (L9FHJMXD66)</div>
+                </td>
+                <td>MXN93LL/A</td>
+                <td class="align-right">$499.00</td>
+                <td class="align-center">1</td>
+                <td class="align-center">1</td>
+                <td class="align-right">$499.00</td>
+            </tr>
+            <tr>
+                <td>
+                    <div class="product-name">APPLE PENCIL PRO-AME</div>
+                    <div class="serial-line">Serial No.: (D9D257714C)</div>
+                </td>
+                <td>MX2D3AM/A</td>
+                <td class="align-right">$129.00</td>
+                <td class="align-center">1</td>
+                <td class="align-center">1</td>
+                <td class="align-right">$129.00</td>
+            </tr>
+        </tbody>
+    </table>
+    
+    <!-- Totals -->
+    <div class="totals-wrapper">
+        <div class="totals-section">
+            <div class="total-line">
+                <span>Subtotal</span>
+                <span>$628.00</span>
+            </div>
+            <div class="total-line">
+                <span>Sales Tax</span>
+                <span>$0.00</span>
+            </div>
+            <div class="total-line total-main">
+                <span>Total</span>
+                <span>$628.00</span>
+            </div>
+            <div class="total-line amount-due">
+                <span>Amount Due</span>
+                <span>$0.00</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Payment Methods -->
+    <div class="payment-section">
+        <div class="payment-title">Payment Methods</div>
+        <div class="payment-detail">$628.00 charged to Visa XXXXXXXXXXXX8722</div>
+        <div class="payment-detail">For a total of $628.00</div>
+    </div>
+    
+    <!-- Additional Information -->
+    <div class="additional-info">
+        <div class="payment-title">Additional Information</div>
+        <div class="info-grid-bottom">
+            <div class="info-col">
+                <div class="info-col-label">Invoice Number</div>
+                <div class="info-col-value">MA85377130</div>
+            </div>
+            <div class="info-col">
+                <div class="info-col-label">Invoice Date</div>
+                <div class="info-col-value">September 04, 2025</div>
+            </div>
+            <div class="info-col">
+                <div class="info-col-label">Terms</div>
+                <div class="info-col-value">Credit Card</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        This order is subject to Apple's Sales and Refunds Policies<br>
+        <a href="https://www.apple.com/shop/open/salespolicies">https://www.apple.com/shop/open/salespolicies</a>
+    </div>
+</body>
+</html>
