@@ -313,8 +313,8 @@
             <div class="info-block">
                 <div class="info-label">Sold To:</div>
                 <div class="info-value">{{ customer.name }}</div>
-                <div class="info-value">{{ customer.address }}</div>
-                <div class="info-value">{{ customer.country }}</div>
+                <div class="info-value">3410 SE Stott Cir Troutdale OR 97060-2559</div>
+                <div class="info-value">United States</div>
             </div>
             
             <div class="customer-label">Customer No: {{ customer.customer_number }}</div>
@@ -328,10 +328,10 @@
             
             <div class="info-block">
                 <div class="info-label">Location:</div>
-                <div class="info-value">{{ location.name }}</div>
-                <div class="info-value">{{ location.address }}</div>
-                <div class="info-value">{{ location.city_state_zip }}</div>
-                <div class="info-value">{{ location.country }}</div>
+                <div class="info-value">Apple Pioneer Place</div>
+                <div class="info-value">450 SW Yamhill Street</div>
+                <div class="info-value">PORTLAND, OR 97204</div>
+                <div class="info-value">United States</div>
             </div>
         </div>
     </div>
@@ -372,11 +372,11 @@
         <div class="totals-section">
             <div class="total-line">
                 <span>Subtotal</span>
-                <span>${{ "%.2f"|format(subtotal) }}</span>
+                <span>${{ "%.2f"|format(total) }}</span>
             </div>
             <div class="total-line">
                 <span>Sales Tax</span>
-                <span>${{ "%.2f"|format(sales_tax) }}</span>
+                <span>$0.00</span>
             </div>
             <div class="total-line total-main">
                 <span>Total</span>
@@ -384,7 +384,7 @@
             </div>
             <div class="total-line amount-due">
                 <span>Amount Due</span>
-                <span>${{ "%.2f"|format(amount_due) }}</span>
+                <span>$0.00</span>
             </div>
         </div>
     </div>
@@ -392,8 +392,8 @@
     <!-- Payment Methods -->
     <div class="payment-section">
         <div class="payment-title">Payment Methods</div>
-        <div class="payment-detail">${{ "%.2f"|format(payment.charged_amount) }} charged to {{ payment.card_type }} XXXXXXXXXXXX{{ payment.card_last_four }}</div>
-        <div class="payment-detail">For a total of ${{ "%.2f"|format(payment.charged_amount) }}</div>
+        <div class="payment-detail">${{ "%.2f"|format(total) }} charged to Visa XXXXXXXXXXXX8722</div>
+        <div class="payment-detail">For a total of ${{ "%.2f"|format(total) }}</div>
     </div>
     
     <!-- Additional Information -->
@@ -410,7 +410,7 @@
             </div>
             <div class="info-col">
                 <div class="info-col-label">Terms</div>
-                <div class="info-col-value">{{ invoice_info.terms }}</div>
+                <div class="info-col-value">Credit Card</div>
             </div>
         </div>
     </div>

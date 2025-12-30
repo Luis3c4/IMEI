@@ -28,8 +28,6 @@ class LocationModel(BaseModel):
 class CustomerModel(BaseModel):
     """Modelo para información del cliente"""
     name: str = Field(..., examples=["Geraldine Eva Flores Flores"])
-    address: str = Field(..., examples=["3410 SE Stott Cir Troutdale OR 97060-2559"])
-    country: str = Field(default="United States")
     customer_number: str = Field(..., examples=["900007"])
 
 
@@ -43,7 +41,7 @@ class ProductModel(BaseModel):
     quantity_fulfilled: int = Field(default=1)
     extended_price: float = Field(..., examples=[499.00])
 
-
+"""Modelo para información de pago(FUTURE USE)"""
 class PaymentModel(BaseModel):
     """Modelo para información de pago"""
     sales_tax: float = Field(default=0.00)
@@ -64,10 +62,8 @@ class InvoiceRequest(BaseModel):
     """Modelo completo para solicitud de factura"""
     order_date: str = Field(..., examples=["September 04, 2025"])
     order_number: str = Field(..., examples=["W1351042737"])
-    location: LocationModel
     customer: CustomerModel
     products: List[ProductModel]
-    payment: PaymentModel
     invoice_info: InvoiceInfoModel
 
 
@@ -112,10 +108,8 @@ async def generar_factura_dinamica(request: InvoiceRequest):
     
     - **order_date**: Fecha de la orden
     - **order_number**: Número de orden
-    - **location**: Información de la tienda
     - **customer**: Información del cliente
     - **products**: Lista de productos (mínimo 1)
-    - **payment**: Información de pago
     - **invoice_info**: Información adicional
     
     Returns:
@@ -130,20 +124,16 @@ async def generar_factura_dinamica(request: InvoiceRequest):
             )
         
         # Convertir modelos a diccionarios
-        location_dict = request.location.model_dump()
         customer_dict = request.customer.model_dump()
         products_list = [p.model_dump() for p in request.products]
-        payment_dict = request.payment.model_dump()
         invoice_info_dict = request.invoice_info.model_dump()
         
         # Generar PDF dinámico
         pdf_bytes = invoice_service.generar_factura_dinamica(
             order_date=request.order_date,
-            location=location_dict,
             order_number=request.order_number,
             customer=customer_dict,
             products=products_list,
-            payment=payment_dict,
             invoice_info=invoice_info_dict
         )
         
@@ -186,7 +176,6 @@ async def preview_factura(request: InvoiceRequest):
         location_dict = request.location.model_dump()
         customer_dict = request.customer.model_dump()
         products_list = [p.model_dump() for p in request.products]
-        payment_dict = request.payment.model_dump()
         invoice_info_dict = request.invoice_info.model_dump()
         
         pdf_bytes = invoice_service.generar_factura_dinamica(
@@ -195,7 +184,6 @@ async def preview_factura(request: InvoiceRequest):
             order_number=request.order_number,
             customer=customer_dict,
             products=products_list,
-            payment=payment_dict,
             invoice_info=invoice_info_dict
         )
         

@@ -1,154 +1,187 @@
-# 📚 Guía de Integración con Supabase
+# 🚀 Guía de Instalación y Configuración de Supabase
 
-## 1️⃣ Estructura de Carpetas Recomendada
+## Paso 1: Obtener Credenciales de Supabase
 
-```
-app/
-├── services/
-│   ├── supabase_service.py    ← Cliente Supabase
-│   ├── dhru_service.py
-│   └── sheets_service.py
-├── routes/
-│   └── devices.py              ← Usa supabase_service
-├── schemas.py
-└── config.py
-```
+1. Ve a [supabase.com](https://supabase.com)
+2. Inicia sesión o crea una cuenta
+3. Crea un nuevo proyecto (o usa uno existente)
+4. En tu proyecto, ve a **Settings → API**
+5. Copia:
+   - **Project URL** → `SUPABASE_URL`
+   - **anon public** key → `SUPABASE_KEY`
 
-## 2️⃣ Pasos de Configuración
+## Paso 2: Actualizar Variables de Entorno
 
-### A) Crear Proyecto Supabase
+Edita tu archivo `.env` y agrega:
 
-1. Ir a [supabase.com](https://supabase.com)
-2. Crear nuevo proyecto
-3. Copiar credenciales:
-   - `SUPABASE_URL` → URL del proyecto
-   - `SUPABASE_KEY` → Clave anón (Configuración > API)
-
-### B) Configurar Variables de Entorno
-
-```bash
-# Crear/Editar archivo .env
-SUPABASE_URL=https://tu-proyecto.supabase.co
-SUPABASE_KEY=eyJhbGc... (tu clave anon)
+```env
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+SUPABASE_TABLE_DEVICES=devices
+SUPABASE_TABLE_HISTORY=consulta_history
 ```
 
-### C) Instalar Dependencias
+## Paso 3: Crear Tablas en Supabase
 
-```bash
-pip install -r requirements.txt
+En Supabase, abre el **SQL Editor** y ejecuta:
+
+### Tabla de Dispositivos
+```sql
+CREATE TABLE devices (
+  id BIGSERIAL PRIMARY KEY,
+  imei VARCHAR(255) UNIQUE NOT NULL,
+  marca VARCHAR(100),
+  modelo VARCHAR(100),
+  estado VARCHAR(50),
+  fecha_consulta TIMESTAMP,
+  datos_adicionales JSONB,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
+);
+
+CREATE INDEX idx_imei ON devices(imei);
 ```
 
-### D) Crear Tablas en Supabase
+### Tabla de Historial
+```sql
+CREATE TABLE consulta_history (
+  id BIGSERIAL PRIMARY KEY,
+  imei VARCHAR(255) NOT NULL,
+  resultado VARCHAR(50),
+  fecha_consulta TIMESTAMP,
+  ip_origen VARCHAR(45),
+  usuario VARCHAR(100),
+  created_at TIMESTAMP DEFAULT NOW()
+);
 
-1. Ir a SQL Editor en Dashboard de Supabase
-2. Copiar y ejecutar el SQL de [scripts/init_supabase.py](../scripts/init_supabase.py)
-
-## 3️⃣ Uso en tu Código
-
-### Ejemplo: Guardar Dispositivo Consultado
-
-```python
-from app.services.supabase_service import supabase_service
-from app.services.dhru_service import DHRUService
-
-@router.post("/query")
-async def query_device(imei: str):
-    # 1. Consultar DHRU API
-    dhru = DHRUService()
-    result = dhru.query_device("tu_service_id", imei)
-    
-    # 2. Guardar en Supabase
-    supabase_service.insert_device({
-        "imei": imei,
-        "device_name": result.get("device_name"),
-        "brand": result.get("brand"),
-        "model": result.get("model"),
-        "status": "active"
-    })
-    
-    # 3. Registrar en historial
-    supabase_service.insert_history({
-        "imei": imei,
-        "query_result": result,
-        "status": "success"
-    })
-    
-    return result
+CREATE INDEX idx_imei_history ON consulta_history(imei);
+CREATE INDEX idx_fecha ON consulta_history(fecha_consulta);
 ```
 
-### Ejemplo: Obtener Historial
+## Paso 4: Activar Row Level Security (RLS) - Opcional
 
-```python
-@router.get("/devices/{imei}/history")
-async def get_device_history(imei: str, limit: int = 50):
-    result = supabase_service.get_device_history(imei, limit)
-    return result
-```
-
-## 4️⃣ Métodos Disponibles
-
-### CRUD Dispositivos
-- `supabase_service.insert_device(data)` - Crear
-- `supabase_service.get_device(imei)` - Obtener uno
-- `supabase_service.update_device(imei, data)` - Actualizar
-- `supabase_service.list_devices(limit, offset)` - Listar todos
-
-### Historial
-- `supabase_service.insert_history(data)` - Registrar consulta
-- `supabase_service.get_device_history(imei, limit)` - Obtener historial
-
-### Validación
-- `supabase_service.is_connected()` - Verificar conexión
-
-## 5️⃣ Estructura de Datos
-
-### Tabla: devices
-```
-id             → BIGINT (auto)
-imei           → TEXT (UNIQUE)
-device_name    → TEXT
-brand          → TEXT
-model          → TEXT
-status         → TEXT ('active', 'inactive', etc)
-last_query     → TIMESTAMP
-created_at     → TIMESTAMP
-updated_at     → TIMESTAMP
-```
-
-### Tabla: consulta_history
-```
-id             → BIGINT (auto)
-imei           → TEXT (FK a devices.imei)
-query_result   → JSONB (resultado de DHRU)
-status         → TEXT ('success', 'error')
-created_at     → TIMESTAMP
-```
-
-## 6️⃣ Seguridad (RLS - Row Level Security)
-
-Para producción, habilita RLS en Supabase:
+Para mayor seguridad, habilita RLS:
 
 ```sql
--- Políticas de ejemplo
-CREATE POLICY "Allow read all" ON devices
+-- Tabla devices
+ALTER TABLE devices ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public select" ON devices
   FOR SELECT USING (true);
 
-CREATE POLICY "Allow insert with api key" ON devices
-  FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow authenticated insert" ON devices
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
+
+-- Tabla consulta_history
+ALTER TABLE consulta_history ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public select" ON consulta_history
+  FOR SELECT USING (true);
+
+CREATE POLICY "Allow authenticated insert" ON consulta_history
+  FOR INSERT WITH CHECK (auth.role() = 'authenticated');
 ```
 
-## 7️⃣ Troubleshooting
+## Paso 5: Usar el Servicio en Tu Aplicación
 
-| Problema | Solución |
-|----------|----------|
-| "Supabase no conectado" | Verifica SUPABASE_URL y SUPABASE_KEY en .env |
-| "Tabla no existe" | Ejecuta el SQL en Supabase > SQL Editor |
-| "Permiso denegado" | Revisa RLS policies en Supabase Dashboard |
-| Error de import | Instala: `pip install supabase` |
+### Opción A: En una ruta FastAPI
 
-## 📌 Próximas Integraciones Sugeridas
+```python
+from fastapi import APIRouter
+from app.services.supabase_service import supabase_service
+from app.schemas import QueryDeviceRequest, QueryDeviceResponse
 
-- [ ] Agregar autenticación con Supabase Auth
-- [ ] Implementar caché con Redis
-- [ ] Configurar backups automáticos
-- [ ] Monitoreo de queries con PostgREST
+router = APIRouter()
+
+@router.post("/guardar-dispositivo")
+async def guardar_dispositivo(request: QueryDeviceRequest):
+    """Guarda un dispositivo en Supabase"""
+    
+    device_data = {
+        "imei": request.input_value,
+        "marca": "Apple",
+        "estado": "Activo",
+        "fecha_consulta": datetime.now().isoformat()
+    }
+    
+    result = await supabase_service.save_device(device_data)
+    
+    if result['success']:
+        return {"success": True, "message": "Dispositivo guardado"}
+    else:
+        raise HTTPException(status_code=400, detail=result['error'])
+```
+
+### Opción B: Script independiente
+
+```python
+import asyncio
+from app.services.supabase_service import supabase_service
+
+async def main():
+    # Obtener dispositivos
+    result = await supabase_service.get_devices(limit=50)
+    
+    if result['success']:
+        devices = result['data']
+        for device in devices:
+            print(f"IMEI: {device['imei']}, Marca: {device['marca']}")
+    else:
+        print(f"Error: {result['error']}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Métodos Disponibles
+
+### Lectura
+- `get_devices(limit=100)` - Obtiene dispositivos
+- `get_device_by_imei(imei)` - Obtiene dispositivo específico
+- `get_query_history(imei, limit=50)` - Obtiene historial
+
+### Escritura
+- `save_device(device_data)` - Crea dispositivo
+- `update_device(imei, data)` - Actualiza dispositivo
+- `delete_device(imei)` - Elimina dispositivo
+- `save_query_history(history_data)` - Registra consulta
+
+### Generales
+- `insert_record(table, data)` - Inserta en tabla
+- `get_records(table, filters={}, limit=100)` - Lee registros
+- `update_record(table, id_column, id_value, data)` - Actualiza
+- `delete_record(table, id_column, id_value)` - Elimina
+
+## Pruebas
+
+Ejecuta el archivo de ejemplos:
+
+```bash
+source venv/bin/activate
+python3 examples_supabase.py
+```
+
+## Solución de Problemas
+
+### "Supabase no está conectado"
+- Verifica que `SUPABASE_URL` y `SUPABASE_KEY` están en `.env`
+- Reinicia la aplicación después de cambiar `.env`
+
+### Error de conexión
+- Verifica que el `SUPABASE_URL` es correcto (sin `/` al final)
+- Comprueba que la clave es válida en Settings → API
+
+### Error de permisos
+- Habilita RLS con políticas públicas (ver Paso 4)
+- O desactiva RLS temporalmente en Settings → Auth
+
+### Tabla no existe
+- Asegúrate de que el nombre en `.env` coincide con la tabla
+- Verifica que ejecutaste el SQL para crear las tablas
+
+## Próximos Pasos
+
+1. Integra Supabase en tus rutas existentes
+2. Configura respaldos automáticos en Supabase
+3. Monitorea el uso en Settings → Database
+4. Considera usar Auth de Supabase para usuarios

@@ -44,11 +44,9 @@ class InvoicePDFService:
     def generar_factura_dinamica(
         self,
         order_date: str,
-        location: Dict[str, str],
         order_number: str,
         customer: Dict[str, Any],
         products: List[Dict[str, Any]],
-        payment: Dict[str, Any],
         invoice_info: Dict[str, Any]
     ) -> bytes:
         """
@@ -56,21 +54,16 @@ class InvoicePDFService:
         
         Args:
             order_date: Fecha de la orden
-            location: Información de la tienda
             order_number: Número de orden
             customer: Información del cliente
             products: Lista de productos ordenados
-            payment: Información de pago
             invoice_info: Información adicional de la factura
             
         Returns:
             bytes: PDF generado en bytes
         """
         # Calcular totales
-        subtotal = sum(float(p.get('extended_price', 0)) for p in products)
-        sales_tax = float(payment.get('sales_tax', 0))
-        total = subtotal + sales_tax
-        amount_due = float(payment.get('amount_due', 0))
+        total = sum(float(p.get('extended_price', 0)) for p in products)
         
         # Cargar template dinámico
         template = self.env.get_template("apple_invoice_dynamic.html")
@@ -78,15 +71,10 @@ class InvoicePDFService:
         # Preparar contexto
         contexto = {
             "order_date": order_date,
-            "location": location,
             "order_number": order_number,
             "customer": customer,
             "products": products,
-            "subtotal": subtotal,
-            "sales_tax": sales_tax,
             "total": total,
-            "amount_due": amount_due,
-            "payment": payment,
             "invoice_info": invoice_info
         }
         
