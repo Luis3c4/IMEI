@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 # Importar los blueprints
-from app.routes import health, devices, sheets, invoice_routes
+from app.routes import health, devices, sheets, invoice_routes, products
 
 # Configurar logging
 logging.basicConfig(
@@ -115,6 +115,13 @@ def create_app() -> FastAPI:
     )
     print("   ✓ Invoice routes registradas (/api/invoices/*)")
     
+    app.include_router(
+        products.router,
+        prefix="/api/products",
+        tags=["products"]
+    )
+    print("   ✓ Products routes registradas (/api/products/*)")
+    
     # ============ ROOT ENDPOINT ============
     @app.get("/", tags=["root"])
     async def root():
@@ -126,7 +133,9 @@ def create_app() -> FastAPI:
             "endpoints": {
                 "health": "/api/health",
                 "devices": "/api/devices/*",
-                "sheets": "/api/sheets/*"
+                "sheets": "/api/sheets/*",
+                "invoices": "/api/invoices/*",
+                "products": "/api/products/*"
             }
         }
     

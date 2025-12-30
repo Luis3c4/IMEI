@@ -23,6 +23,7 @@ class Settings(BaseSettings):
     SUPABASE_KEY: Optional[str] = os.getenv('SUPABASE_KEY', None)
     SUPABASE_TABLE_DEVICES: str = "devices"
     SUPABASE_TABLE_HISTORY: str = "consulta_history"
+    SUPABASE_TABLE_PRODUCTS: str = "products"
     
     # ============ APPLICATION ============
     DEBUG: bool = os.getenv('DEBUG', 'True').lower() == 'true'
