@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     DHRU_API_USER: str = os.getenv('DHRU_API_USER', 'javie.apaza@gmail.com')
     DHRU_API_BASE: str = 'https://sickw.com/api.php'
     
+    # ============ RENIEC API ============
+    RENIEC_API_BASE: str = 'https://api.decolecta.com/v1/reniec'
+    RENIEC_API_TOKEN: str = os.getenv('RENIEC_API_TOKEN', 'sk_12581.twCsX39rBPOY9qvlixjVn9rWAR4L1diH')
+    
     # ============ GOOGLE SHEETS ============
     GOOGLE_SHEET_ID: str = os.getenv('GOOGLE_SHEET_ID', '1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM')
     GOOGLE_CREDENTIALS_JSON: Optional[str] = os.getenv('GOOGLE_CREDENTIALS_JSON', None)

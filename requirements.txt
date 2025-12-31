@@ -4,12 +4,12 @@ uvicorn==0.24.0
 python-dotenv==1.0.0
 
 # Pydantic para validación de datos
-pydantic==2.5.0
+pydantic==2.11.7
 pydantic-settings==2.1.0
 
 # HTTP requests
 requests==2.31.0
-httpx==0.25.2
+httpx==0.28.1
 
 # Google Sheets API
 gspread==5.12.0
@@ -22,5 +22,5 @@ google-auth-oauthlib==1.2.0
 weasyprint==63.1
 jinja2==3.1.4
 # Supabase (PostgreSQL + API)
-supabase>=2.27.0
-websockets>=15.0.0
+supabase>=2.27.0,<3.0.0
+websockets>=15.0.0,<16.0.0

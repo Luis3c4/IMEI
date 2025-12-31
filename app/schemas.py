@@ -143,6 +143,52 @@ class SheetUrlResponse(BaseModel):
     error: Optional[str] = None
 
 
+# ============ RENIEC ENDPOINTS ============
+
+class ReniecDNIRequest(BaseModel):
+    """Solicitud para consultar DNI en RENIEC"""
+    numero: str = Field(
+        ...,
+        description="Número de DNI a consultar",
+        min_length=8,
+        max_length=8,
+        json_schema_extra={"example": "46027897"}
+    )
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "numero": "46027897"
+                }
+            ]
+        }
+    )
+
+
+class ReniecDNIResponse(BaseModel):
+    """Respuesta de consulta DNI en RENIEC"""
+    first_name: str = Field(..., description="Nombres")
+    first_last_name: str = Field(..., description="Apellido paterno")
+    second_last_name: str = Field(..., description="Apellido materno")
+    full_name: str = Field(..., description="Nombre completo")
+    document_number: str = Field(..., description="Número de DNI")
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "first_name": "ROXANA KARINA",
+                    "first_last_name": "DELGADO",
+                    "second_last_name": "CUELLAR",
+                    "full_name": "DELGADO CUELLAR ROXANA KARINA",
+                    "document_number": "46027896"
+                }
+            ]
+        }
+    )
+
+
 # ============ HEALTH CHECK ============
 
 class HealthResponse(BaseModel):
