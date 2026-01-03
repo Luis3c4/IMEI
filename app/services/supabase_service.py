@@ -170,25 +170,35 @@ class SupabaseService:
             logger.error(f"❌ Error en operación {operation}: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    # ==================== TABLA: PRODUCTS ====================
-    
-    def get_all_products(self) -> Dict[str, Any]:
-        """Obtiene todos los productos de la tabla products"""
+    # ==================== TABLA: PRODUCTS ==================== 
+    def get_products_with_variants(self) -> Dict[str, Any]:
+        """Obtiene todos los productos con sus variantes (JOIN)"""
         if not self.is_connected():
             return {'success': False, 'error': 'Supabase no conectado', 'data': []}
         
         assert self.client is not None
         try:
-            response = self.client.table(settings.SUPABASE_TABLE_PRODUCTS).select(
-                "*"
+            response = self.client.table('products').select(
+                """
+                *,
+                product_variants (
+                    id,
+                    color,
+                    capacity,
+                    serial_number,
+                    price,
+                    quantity,
+                    created_at,
+                    updated_at
+                )
+                """
             ).execute()
             
-            logger.info(f"✅ Productos obtenidos: {len(response.data)} productos")
+            logger.info(f"✅ Productos con variantes obtenidos: {len(response.data)} productos")
             return {'success': True, 'data': response.data, 'count': len(response.data)}
         except Exception as e:
-            logger.error(f"❌ Error al obtener productos: {str(e)}")
+            logger.error(f"❌ Error al obtener productos con variantes: {str(e)}")
             return {'success': False, 'error': str(e), 'data': []}
-
 
 # Instancia global del servicio
 supabase_service = SupabaseService()

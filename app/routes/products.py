@@ -37,10 +37,10 @@ class ProductsResponse(BaseModel):
 @router.get("/", response_model=ProductsResponse)
 async def get_all_products():
     """
-    Obtiene todos los productos de la tabla products
+    Obtiene todos los productos con sus variantes (JOIN)
     
     Returns:
-        ProductsResponse: Lista de todos los productos disponibles
+        ProductsResponse: Lista de todos los productos con sus variantes
     """
     if not supabase_service.is_connected():
         raise HTTPException(
@@ -48,7 +48,7 @@ async def get_all_products():
             detail="Servicio de base de datos no disponible"
         )
     
-    result = supabase_service.get_all_products()
+    result = supabase_service.get_products_with_variants()
     
     if not result.get('success'):
         raise HTTPException(

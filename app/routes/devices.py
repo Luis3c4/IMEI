@@ -174,7 +174,6 @@ async def get_services():
             detail=f"Error obteniendo servicios: {str(e)}"
         )
 
-
 @router.post(
     "/historial",
     response_model=HistoryResponse,
