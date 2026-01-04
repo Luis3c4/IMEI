@@ -172,7 +172,7 @@ class SupabaseService:
     
     # ==================== TABLA: PRODUCTS ==================== 
     def get_products_with_variants(self) -> Dict[str, Any]:
-        """Obtiene todos los productos con sus variantes (JOIN)"""
+        """Obtiene todos los productos con sus variantes y sus items"""
         if not self.is_connected():
             return {'success': False, 'error': 'Supabase no conectado', 'data': []}
         
@@ -185,19 +185,30 @@ class SupabaseService:
                     id,
                     color,
                     capacity,
-                    serial_number,
                     price,
-                    quantity,
-                    created_at,
-                    updated_at
+                    product_items (
+                        id,
+                        serial_number,
+                        status
+                    )
                 )
                 """
             ).execute()
+
+            products: List[Dict[str, Any]] = response.data or []
+            for product in products:
+                variants = product.get('product_variants') or []
+                for variant in variants:
+                    items = variant.get('product_items') or []
+                    # Contar solo items disponibles
+                    available_items = [item for item in items if item.get('status') == 'available']
+                    variant['quantity'] = len(available_items)
+                    variant['serial_numbers'] = [item.get('serial_number') for item in available_items if item.get('serial_number')]
             
-            logger.info(f"✅ Productos con variantes obtenidos: {len(response.data)} productos")
-            return {'success': True, 'data': response.data, 'count': len(response.data)}
+            logger.info(f"Productos con variantes obtenidos: {len(products)} productos")
+            return {'success': True, 'data': products, 'count': len(products)}
         except Exception as e:
-            logger.error(f"❌ Error al obtener productos con variantes: {str(e)}")
+            logger.error(f"Error al obtener productos con variantes: {str(e)}")
             return {'success': False, 'error': str(e), 'data': []}
 
 # Instancia global del servicio

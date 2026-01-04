@@ -12,20 +12,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
-
-class Product(BaseModel):
-    """Modelo de producto"""
-    id: str
-    name: str
-    product_number: str
-    serial_number: str
-    item_price: str
-    quantity: int
-    category: str
-    created_at: str
-    updated_at: str
-
-
 class ProductsResponse(BaseModel):
     """Respuesta de productos"""
     success: bool
