@@ -11,14 +11,16 @@ from app.schemas import (
 )
 from app.services.dhru_service import DHRUService
 from app.services.sheets_service import SheetsService
+from app.services.supabase_service import SupabaseService
 from app.utils.validators import DeviceInputValidator
-from app.utils.parsers import normalize_keys
+from app.utils.parsers import normalize_keys, parse_model_description
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 dhru_service = DHRUService()
 sheets_service = SheetsService()
+supabase_service = SupabaseService()
 
 
 @router.post(
@@ -46,6 +48,8 @@ async def query_device(request: QueryDeviceRequest):
     - price: float - Precio de la consulta
     - order_id: str - ID del pedido
     - sheet_updated: bool - Si se guardó en Google Sheets
+    - supabase_saved: bool - Si se guardó en Supabase
+    - parsed_model: dict - Información parseada del modelo (brand, color, capacity, etc)
     
     **Errores:**
     - 400: IMEI inválido o formato incorrecto
@@ -95,6 +99,46 @@ async def query_device(request: QueryDeviceRequest):
             # Si falla Google Sheets, no bloqueamos la respuesta
             result['sheet_updated'] = False
             result['sheet_error'] = str(e)
+        
+        # 4. GUARDAR EN SUPABASE si está conectado
+        try:
+            # Parsear el Model_Description
+            model_desc = result['data'].get('Model_Description', '')
+            parsed_model = parse_model_description(model_desc)
+            
+            logger.info(f"📱 Modelo parseado: {parsed_model}")
+            
+            # Guardar en Supabase
+            supabase_result = supabase_service.save_device_query(
+                device_info=result['data'],
+                metadata={
+                    'input_value': request.input_value,
+                    'service_id': request.service_id,
+                    'order_id': result.get('order_id'),
+                    'price': result.get('price'),
+                    'balance': result.get('balance')
+                },
+                parsed_model=parsed_model
+            )
+            
+            result['supabase_saved'] = supabase_result['success']
+            if supabase_result['success']:
+                result['supabase_ids'] = {
+                    'product_id': supabase_result.get('product_id'),
+                    'variant_id': supabase_result.get('variant_id'),
+                    'item_id': supabase_result.get('item_id')
+                }
+                result['parsed_model'] = parsed_model
+                logger.info(f"✅ Guardado en Supabase: {supabase_result}")
+            else:
+                result['supabase_error'] = supabase_result.get('error')
+                logger.error(f"❌ Error guardando en Supabase: {supabase_result.get('error')}")
+                
+        except Exception as e:
+            # Si falla Supabase, no bloqueamos la respuesta
+            result['supabase_saved'] = False
+            result['supabase_error'] = str(e)
+            logger.error(f"❌ Excepción guardando en Supabase: {str(e)}")
     
     return result
 

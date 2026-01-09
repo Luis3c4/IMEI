@@ -18,13 +18,30 @@ class SheetsService:
     
     def _get_client(self):
         """Obtiene cliente autenticado de Google Sheets"""
+        import json
+        import os
+        
         if settings.GOOGLE_CREDENTIALS_JSON:
-            import json
-            creds_dict = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
-            creds = Credentials.from_service_account_info(
-                creds_dict, scopes=self.SCOPES
-            )
+            # Verificar si es un path de archivo o JSON string
+            if os.path.isfile(settings.GOOGLE_CREDENTIALS_JSON):
+                # Es un path de archivo
+                creds = Credentials.from_service_account_file(
+                    settings.GOOGLE_CREDENTIALS_JSON, scopes=self.SCOPES
+                )
+            else:
+                # Es un JSON string
+                try:
+                    creds_dict = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
+                    creds = Credentials.from_service_account_info(
+                        creds_dict, scopes=self.SCOPES
+                    )
+                except json.JSONDecodeError:
+                    raise ValueError(
+                        "GOOGLE_CREDENTIALS_JSON debe ser un path válido a un archivo JSON "
+                        "o un string JSON válido"
+                    )
         else:
+            # Usar archivo por defecto
             creds = Credentials.from_service_account_file(
                 'credentials.json', scopes=self.SCOPES
             )

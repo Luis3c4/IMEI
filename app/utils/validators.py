@@ -97,6 +97,7 @@ class SerialNumberValidator:
     
     # Formatos conocidos de serial numbers de Apple
     FORMATS = {
+        'compact': r'^[A-Z0-9]{10}$',  # Formato compacto (10 caracteres)
         'old': r'^[A-Z0-9]{11}$',      # Formato antiguo (11 caracteres)
         'new': r'^[A-Z0-9]{12}$',      # Formato nuevo (12 caracteres)
         'imac': r'^[A-Z0-9]{13}$',     # iMac y algunos Mac (13 caracteres)

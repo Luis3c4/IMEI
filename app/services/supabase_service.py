@@ -178,15 +178,15 @@ class SupabaseService:
         
         assert self.client is not None
         try:
-            response = self.client.table('products').select(
-                """
+            response = self.client.table(settings.SUPABASE_TABLE_PRODUCTS).select(
+                f"""
                 *,
-                product_variants (
+                {settings.SUPABASE_TABLE_PRODUCT_VARIANTS} (
                     id,
                     color,
                     capacity,
                     price,
-                    product_items (
+                    {settings.SUPABASE_TABLE_PRODUCT_ITEMS} (
                         id,
                         serial_number,
                         status
@@ -210,6 +210,100 @@ class SupabaseService:
         except Exception as e:
             logger.error(f"Error al obtener productos con variantes: {str(e)}")
             return {'success': False, 'error': str(e), 'data': []}
+    
+    def save_device_query(self, device_info: Dict[str, Any], metadata: Dict[str, Any], parsed_model: Dict[str, Optional[str]]) -> Dict[str, Any]:
+        """
+        Guarda un dispositivo consultado con toda su información relacionada
+        
+        Args:
+            device_info: Datos del dispositivo desde DHRU
+            metadata: Metadata adicional (order_id, price, etc)
+            parsed_model: Información parseada del Model_Description
+            
+        Returns:
+            {'success': bool, 'product_id': int, 'variant_id': int, 'item_id': int}
+        """
+        if not self.is_connected():
+            return {'success': False, 'error': 'Supabase no conectado'}
+        
+        assert self.client is not None
+        
+        try:
+            # 1. BUSCAR O CREAR PRODUCTO
+            product_name = parsed_model.get('full_model') or device_info.get('Model_Description', 'Unknown')
+            
+            # Buscar si el producto ya existe
+            product_response = self.client.table('products').select('*').eq('name', product_name).execute()
+            
+            if product_response.data:
+                product_id = product_response.data[0]['id']
+                logger.info(f"✅ Producto existente encontrado: {product_name} (ID: {product_id})")
+            else:
+                # Crear nuevo producto
+                product_data = {
+                    'name': product_name,
+                    'category': parsed_model.get('brand', 'Unknown'),
+                    'description': device_info.get('Model_Description')
+                }
+                new_product = self.client.table('products').insert(product_data).execute()
+                product_id = new_product.data[0]['id']
+                logger.info(f"✅ Nuevo producto creado: {product_name} (ID: {product_id})")
+            
+            # 2. BUSCAR O CREAR VARIANTE (color + capacidad)
+            color = parsed_model.get('color') or 'Unknown'
+            capacity = parsed_model.get('capacity') or 'Unknown'
+            
+            variant_response = self.client.table('product_variants').select('*').eq(
+                'product_id', product_id
+            ).eq('color', color).eq('capacity', capacity).execute()
+            
+            if variant_response.data:
+                variant_id = variant_response.data[0]['id']
+                logger.info(f"✅ Variante existente: {color} {capacity} (ID: {variant_id})")
+            else:
+                # Crear nueva variante con precio del metadata
+                variant_data = {
+                    'product_id': product_id,
+                    'color': color,
+                    'capacity': capacity,
+                    'price': metadata.get('price', 0.0)
+                }
+                new_variant = self.client.table('product_variants').insert(variant_data).execute()
+                variant_id = new_variant.data[0]['id']
+                logger.info(f"✅ Nueva variante creada: {color} {capacity} (ID: {variant_id})")
+            
+            # 3. CREAR PRODUCT_ITEM (Serial Number único)
+            serial_number = device_info.get('Serial_Number') or device_info.get('IMEI', 'Unknown')
+            
+            # Verificar si ya existe este serial
+            existing_item = self.client.table('product_items').select('*').eq(
+                'serial_number', serial_number
+            ).execute()
+            
+            if existing_item.data:
+                logger.warning(f"⚠️  Serial number ya existe: {serial_number}")
+                item_id = existing_item.data[0]['id']
+            else:
+                item_data = {
+                    'variant_id': variant_id,
+                    'serial_number': serial_number,
+                    'status': 'available'  # Puedes ajustar según el iCloud_Lock u otro criterio
+                }
+                new_item = self.client.table('product_items').insert(item_data).execute()
+                item_id = new_item.data[0]['id']
+                logger.info(f"✅ Product item creado: {serial_number} (ID: {item_id})")
+            
+            return {
+                'success': True,
+                'product_id': product_id,
+                'variant_id': variant_id,
+                'item_id': item_id,
+                'message': 'Dispositivo guardado correctamente'
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error guardando dispositivo en Supabase: {str(e)}")
+            return {'success': False, 'error': str(e)}
 
 # Instancia global del servicio
 supabase_service = SupabaseService()

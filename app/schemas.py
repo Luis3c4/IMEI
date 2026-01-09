@@ -61,6 +61,23 @@ class DeviceInfo(BaseModel):
     )
 
 
+class ParsedModel(BaseModel):
+    """Modelo parseado del Model_Description"""
+    brand: Optional[str] = None
+    model: Optional[str] = None
+    color: Optional[str] = None
+    capacity: Optional[str] = None
+    country: Optional[str] = None
+    full_model: Optional[str] = None
+
+
+class SupabaseIds(BaseModel):
+    """IDs de registros creados en Supabase"""
+    product_id: Optional[int] = None
+    variant_id: Optional[int] = None
+    item_id: Optional[int] = None
+
+
 class QueryDeviceResponse(BaseModel):
     """Respuesta exitosa de consulta de dispositivo"""
     success: bool = True
@@ -71,6 +88,11 @@ class QueryDeviceResponse(BaseModel):
     sheet_updated: Optional[bool] = None
     total_registros: Optional[int] = None
     sheet_url: Optional[str] = None
+    sheet_error: Optional[str] = None
+    supabase_saved: Optional[bool] = None
+    supabase_ids: Optional[SupabaseIds] = None
+    supabase_error: Optional[str] = None
+    parsed_model: Optional[ParsedModel] = None
 
 
 class ErrorResponse(BaseModel):
