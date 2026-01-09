@@ -304,6 +304,45 @@ class SupabaseService:
         except Exception as e:
             logger.error(f"❌ Error guardando dispositivo en Supabase: {str(e)}")
             return {'success': False, 'error': str(e)}
+    
+    def update_product_item_status(self, item_id: int, new_status: str) -> Dict[str, Any]:
+        """
+        Actualiza el status de un product_item
+        
+        Args:
+            item_id: ID del product_item
+            new_status: Nuevo status ('available', 'sold', 'reserved', etc.)
+            
+        Returns:
+            {'success': bool, 'data': dict}
+        """
+        if not self.is_connected():
+            return {'success': False, 'error': 'Supabase no conectado'}
+        
+        assert self.client is not None
+        
+        try:
+            # Validar status permitidos
+            valid_statuses = ['available', 'sold', 'reserved']
+            if new_status not in valid_statuses:
+                return {
+                    'success': False, 
+                    'error': f'Status inválido. Debe ser uno de: {valid_statuses}'
+                }
+            
+            response = self.client.table('product_items').update({
+                'status': new_status
+            }).eq('id', item_id).execute()
+            
+            if not response.data:
+                return {'success': False, 'error': 'Product item no encontrado'}
+            
+            logger.info(f"✅ Status actualizado para item {item_id}: {new_status}")
+            return {'success': True, 'data': response.data[0]}
+            
+        except Exception as e:
+            logger.error(f"❌ Error actualizando status: {str(e)}")
+            return {'success': False, 'error': str(e)}
 
 # Instancia global del servicio
 supabase_service = SupabaseService()

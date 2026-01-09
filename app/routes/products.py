@@ -20,6 +20,35 @@ class ProductsResponse(BaseModel):
     error: Optional[str] = None
 
 
+class UpdateStatusRequest(BaseModel):
+    """Request para actualizar status"""
+    item_id: int
+    status: str
+
+
+class StatusResponse(BaseModel):
+    """Respuesta de actualización de status"""
+    success: bool
+    data: Optional[Dict[str, Any]] = None
+    error: Optional[str] = None
+    message: Optional[str] = None
+
+
+class BulkToggleRequest(BaseModel):
+    """Request para toggle múltiple de items"""
+    item_ids: List[int]
+
+
+class BulkStatusResponse(BaseModel):
+    """Respuesta de actualización múltiple de status"""
+    success: bool
+    total: int
+    updated: int
+    failed: int
+    results: List[Dict[str, Any]]
+    message: Optional[str] = None
+
+
 @router.get("/", response_model=ProductsResponse)
 async def get_all_products():
     """
@@ -59,3 +88,178 @@ async def products_health():
         "status": "connected" if supabase_service.is_connected() else "disconnected",
         "message": "Servicio de productos operativo"
     }
+
+
+@router.patch("/items/{item_id}/status")
+async def update_item_status(item_id: int, request: UpdateStatusRequest):
+    """
+    Actualiza el status de un product_item
+    
+    Args:
+        item_id: ID del product_item
+        request: Objeto con el nuevo status
+        
+    Returns:
+        StatusResponse con el item actualizado
+    """
+    if not supabase_service.is_connected():
+        raise HTTPException(
+            status_code=503,
+            detail="Servicio de base de datos no disponible"
+        )
+    
+    result = supabase_service.update_product_item_status(item_id, request.status)
+    
+    if not result.get('success'):
+        raise HTTPException(
+            status_code=400,
+            detail=result.get('error', 'Error al actualizar status')
+        )
+    
+    return StatusResponse(
+        success=True,
+        data=result.get('data'),
+        message=f"Status actualizado a '{request.status}'"
+    )
+
+
+@router.post("/items/{item_id}/toggle-sold")
+async def toggle_item_sold(item_id: int):
+    """
+    Toggle entre available y sold para un product_item
+    Endpoint simplificado para el botón del frontend
+    
+    Args:
+        item_id: ID del product_item
+        
+    Returns:
+        StatusResponse con el nuevo status
+    """
+    if not supabase_service.is_connected():
+        raise HTTPException(
+            status_code=503,
+            detail="Servicio de base de datos no disponible"
+        )
+    
+    # Primero obtener el status actual
+    try:
+        result = supabase_service.client.table('product_items').select(
+            'id, status'
+        ).eq('id', item_id).execute()
+        
+        if not result.data:
+            raise HTTPException(status_code=404, detail="Product item no encontrado")
+        
+        current_status = result.data[0]['status']
+        new_status = 'sold' if current_status == 'available' else 'available'
+        
+        # Actualizar status
+        update_result = supabase_service.update_product_item_status(item_id, new_status)
+        
+        if not update_result.get('success'):
+            raise HTTPException(
+                status_code=400,
+                detail=update_result.get('error', 'Error al actualizar status')
+            )
+        
+        return StatusResponse(
+            success=True,
+            data=update_result.get('data'),
+            message=f"Status cambiado de '{current_status}' a '{new_status}'"
+        )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error en toggle_item_sold: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/items/bulk-toggle-sold", response_model=BulkStatusResponse)
+async def bulk_toggle_items_sold(request: BulkToggleRequest):
+    """
+    Toggle entre available y sold para múltiples product_items
+    Endpoint para manejar multiselección en el frontend
+    
+    Args:
+        request: Objeto con la lista de item_ids a actualizar
+        
+    Returns:
+        BulkStatusResponse con resultados de cada actualización
+    """
+    if not supabase_service.is_connected():
+        raise HTTPException(
+            status_code=503,
+            detail="Servicio de base de datos no disponible"
+        )
+    
+    if not request.item_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="La lista de item_ids no puede estar vacía"
+        )
+    
+    results = []
+    updated_count = 0
+    failed_count = 0
+    
+    for item_id in request.item_ids:
+        try:
+            # Obtener el status actual
+            result = supabase_service.client.table('product_items').select(
+                'id, status, serial_number'
+            ).eq('id', item_id).execute()
+            
+            if not result.data:
+                results.append({
+                    'item_id': item_id,
+                    'success': False,
+                    'error': 'Product item no encontrado'
+                })
+                failed_count += 1
+                continue
+            
+            current_status = result.data[0]['status']
+            serial_number = result.data[0].get('serial_number', '')
+            new_status = 'sold' if current_status == 'available' else 'available'
+            
+            # Actualizar status
+            update_result = supabase_service.update_product_item_status(item_id, new_status)
+            
+            if update_result.get('success'):
+                results.append({
+                    'item_id': item_id,
+                    'success': True,
+                    'serial_number': serial_number,
+                    'old_status': current_status,
+                    'new_status': new_status
+                })
+                updated_count += 1
+            else:
+                results.append({
+                    'item_id': item_id,
+                    'success': False,
+                    'error': update_result.get('error', 'Error desconocido')
+                })
+                failed_count += 1
+                
+        except Exception as e:
+            logger.error(f"Error procesando item {item_id}: {str(e)}")
+            results.append({
+                'item_id': item_id,
+                'success': False,
+                'error': str(e)
+            })
+            failed_count += 1
+    
+    total = len(request.item_ids)
+    success = failed_count == 0
+    
+    return BulkStatusResponse(
+        success=success,
+        total=total,
+        updated=updated_count,
+        failed=failed_count,
+        results=results,
+        message=f"Actualización completa: {updated_count} exitosos, {failed_count} fallidos"
+    )

@@ -121,6 +121,7 @@ class ServicesResponse(BaseModel):
     services: Optional[List[Dict[str, Any]]] = None
     total: Optional[int] = None
     message: Optional[str] = None
+    all_services: Optional[List[Dict[str, Any]]] = None
     error: Optional[str] = None
 
 

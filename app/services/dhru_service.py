@@ -94,17 +94,39 @@ class DHRUService:
             # DHRU devuelve la lista con la key "Service List"
             if 'Service List' in data:
                 services = data['Service List']
-                logger.info(f"Servicios obtenidos correctamente: {len(services)} servicios")
+                logger.info(f"Servicios obtenidos: {len(services)} servicios totales")
+                
+                # Filtrar solo servicios de Apple
+                apple_keywords = ['APPLE', 'IPHONE', 'ICLOUD', 'MACBOOK']
+                filtered_services = [
+                    service for service in services
+                    if any(keyword in service.get('name', '').upper() 
+                          for keyword in apple_keywords)
+                ]
+                
+                logger.info(f"Servicios de Apple filtrados: {len(filtered_services)} servicios")
                 return {
                     'success': True,
-                    'services': services
+                    'services': filtered_services,
+                    'all_services': services
                 }
             
             # Si tiene formato estándar con status
             if data.get('status') == 'success':
+                services = data.get('services', [])
+                
+                # Filtrar solo servicios de Apple
+                apple_keywords = ['APPLE', 'IPHONE', 'ICLOUD', 'MACBOOK']
+                filtered_services = [
+                    service for service in services
+                    if any(keyword in service.get('serviceName', '').upper() 
+                          for keyword in apple_keywords)
+                ]
+                
                 return {
                     'success': True,
-                    'services': data.get('services', [])
+                    'services': filtered_services
+
                 }
             
             # Log del error específico
