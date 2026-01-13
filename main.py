@@ -8,6 +8,7 @@ import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+from datetime import datetime
 
 # Importar los blueprints
 from app.routes import health, devices, sheets, invoice_routes, products, reniec
@@ -147,10 +148,9 @@ def create_app() -> FastAPI:
             }
         }
     
-    # ============ ERROR HANDLERS ============
     @app.get("/api/health", tags=["health"])
     async def quick_health():
-        """Health check rápido"""
+        """Health check rápido (alternativo)"""
         return {"status": "ok"}
     
     return app

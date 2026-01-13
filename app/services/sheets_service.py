@@ -20,6 +20,7 @@ class SheetsService:
         """Obtiene cliente autenticado de Google Sheets"""
         import json
         import os
+        import base64
         
         if settings.GOOGLE_CREDENTIALS_JSON:
             # Verificar si es un path de archivo o JSON string
@@ -29,17 +30,25 @@ class SheetsService:
                     settings.GOOGLE_CREDENTIALS_JSON, scopes=self.SCOPES
                 )
             else:
-                # Es un JSON string
+                # Intentar decodificar de base64 primero
                 try:
-                    creds_dict = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
+                    decoded = base64.b64decode(settings.GOOGLE_CREDENTIALS_JSON)
+                    creds_dict = json.loads(decoded)
                     creds = Credentials.from_service_account_info(
                         creds_dict, scopes=self.SCOPES
                     )
-                except json.JSONDecodeError:
-                    raise ValueError(
-                        "GOOGLE_CREDENTIALS_JSON debe ser un path válido a un archivo JSON "
-                        "o un string JSON válido"
-                    )
+                except Exception:
+                    # Si falla base64, intentar como JSON directo
+                    try:
+                        creds_dict = json.loads(settings.GOOGLE_CREDENTIALS_JSON)
+                        creds = Credentials.from_service_account_info(
+                            creds_dict, scopes=self.SCOPES
+                        )
+                    except json.JSONDecodeError:
+                        raise ValueError(
+                            "GOOGLE_CREDENTIALS_JSON debe ser un path válido a un archivo JSON, "
+                            "un string JSON válido, o un JSON en base64"
+                        )
         else:
             # Usar archivo por defecto
             creds = Credentials.from_service_account_file(

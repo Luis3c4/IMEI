@@ -110,3 +110,5 @@ dmypy.json
 *.temp
 *.bak
 *.orig
+# md files 
+GUIA_DESPLIEGUE.md

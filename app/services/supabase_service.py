@@ -49,7 +49,7 @@ class SupabaseService:
         
         assert self.client is not None
         try:
-            response = self.client.table(settings.SUPABASE_TABLE_DEVICES).insert(
+            response = self.client.table('devices').insert(
                 device_data
             ).execute()
             
@@ -66,7 +66,7 @@ class SupabaseService:
         
         assert self.client is not None
         try:
-            response = self.client.table(settings.SUPABASE_TABLE_DEVICES).select(
+            response = self.client.table('devices').select(
                 "*"
             ).eq("imei", imei).execute()
             
@@ -84,7 +84,7 @@ class SupabaseService:
         
         assert self.client is not None
         try:
-            response = self.client.table(settings.SUPABASE_TABLE_DEVICES).update(
+            response = self.client.table('devices').update(
                 device_data
             ).eq("imei", imei).execute()
             
@@ -101,7 +101,7 @@ class SupabaseService:
         
         assert self.client is not None
         try:
-            response = self.client.table(settings.SUPABASE_TABLE_DEVICES).select(
+            response = self.client.table('devices').select(
                 "*"
             ).range(offset, offset + limit - 1).execute()
             
@@ -119,7 +119,7 @@ class SupabaseService:
         
         assert self.client is not None
         try:
-            response = self.client.table(settings.SUPABASE_TABLE_HISTORY).insert(
+            response = self.client.table('consulta_history').insert(
                 history_data
             ).execute()
             
@@ -136,7 +136,7 @@ class SupabaseService:
         
         assert self.client is not None
         try:
-            response = self.client.table(settings.SUPABASE_TABLE_HISTORY).select(
+            response = self.client.table('consulta_history').select(
                 "*"
             ).eq("imei", imei).order("created_at", desc=True).limit(limit).execute()
             
@@ -178,15 +178,15 @@ class SupabaseService:
         
         assert self.client is not None
         try:
-            response = self.client.table(settings.SUPABASE_TABLE_PRODUCTS).select(
+            response = self.client.table('products').select(
                 f"""
                 *,
-                {settings.SUPABASE_TABLE_PRODUCT_VARIANTS} (
+                product_variants (
                     id,
                     color,
                     capacity,
                     price,
-                    {settings.SUPABASE_TABLE_PRODUCT_ITEMS} (
+                    product_items (
                         id,
                         serial_number,
                         status

@@ -17,8 +17,7 @@ Edita tu archivo `.env` y agrega:
 ```env
 SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_TABLE_DEVICES=devices
-SUPABASE_TABLE_HISTORY=consulta_history
+# Los nombres de las tablas se definen en el código fuente como literales.
 ```
 
 ## Paso 3: Crear Tablas en Supabase

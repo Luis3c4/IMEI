@@ -26,12 +26,7 @@ class Settings(BaseSettings):
     SUPABASE_URL: Optional[str] = os.getenv('SUPABASE_URL', None)
     SUPABASE_KEY: Optional[str] = os.getenv('SUPABASE_KEY', None)
     
-    # Nombres de las tablas de Supabase
-    SUPABASE_TABLE_DEVICES: str = os.getenv('SUPABASE_TABLE_DEVICES', 'devices')
-    SUPABASE_TABLE_HISTORY: str = os.getenv('SUPABASE_TABLE_HISTORY', 'consulta_history')
-    SUPABASE_TABLE_PRODUCTS: str = os.getenv('SUPABASE_TABLE_PRODUCTS', 'products')
-    SUPABASE_TABLE_PRODUCT_VARIANTS: str = os.getenv('SUPABASE_TABLE_PRODUCT_VARIANTS', 'product_variants')
-    SUPABASE_TABLE_PRODUCT_ITEMS: str = os.getenv('SUPABASE_TABLE_PRODUCT_ITEMS', 'product_items')
+    # Nota: Los nombres de tablas se usan como literales en el código.
     
     # ============ APPLICATION ============
     DEBUG: bool = os.getenv('DEBUG', 'True').lower() == 'true'
