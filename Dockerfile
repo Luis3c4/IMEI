@@ -66,7 +66,7 @@ EXPOSE 8000
 # Health check para verificar que el contenedor está funcionando
 # Docker/Railway/Render usarán esto para monitorear la salud del servicio
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:${PORT}/api/health || exit 1
+    CMD curl -f http://localhost:${PORT}/health || exit 1
 
 # Comando de inicio con Gunicorn + Uvicorn workers
 # --bind 0.0.0.0:$PORT -> Escucha en todas las interfaces en el puerto especificado

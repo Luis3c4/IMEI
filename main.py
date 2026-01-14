@@ -90,10 +90,9 @@ def create_app() -> FastAPI:
     
     app.include_router(
         health.router,
-        prefix="/api",
         tags=["health"]
     )
-    print("   ✓ Health routes registradas (/api/health)")
+    print("   ✓ Health routes registradas (/health)")
     
     app.include_router(
         devices.router,
@@ -139,7 +138,7 @@ def create_app() -> FastAPI:
             "status": "running",
             "docs": "/docs",
             "endpoints": {
-                "health": "/api/health",
+                "health": "/health",
                 "devices": "/api/devices/*",
                 "sheets": "/api/sheets/*",
                 "invoices": "/api/invoices/*",
@@ -148,7 +147,7 @@ def create_app() -> FastAPI:
             }
         }
     
-    @app.get("/api/health", tags=["health"])
+    @app.get("/health", tags=["health"])
     async def quick_health():
         """Health check rápido (alternativo)"""
         return {"status": "ok"}
