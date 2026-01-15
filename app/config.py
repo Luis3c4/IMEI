@@ -10,16 +10,16 @@ class Settings(BaseSettings):
     """
     
     # ============ DHRU API ============
-    DHRU_API_KEY: str = os.getenv('DHRU_API_KEY', '1PA-6X8-BMQ-T28-X6H-8WP-7CL-GTK')
-    DHRU_API_USER: str = os.getenv('DHRU_API_USER', 'javie.apaza@gmail.com')
+    DHRU_API_KEY: str = os.getenv('DHRU_API_KEY', '')
+    DHRU_API_USER: str = os.getenv('DHRU_API_USER', '')
     DHRU_API_BASE: str = 'https://sickw.com/api.php'
     
     # ============ RENIEC API ============
     RENIEC_API_BASE: str = 'https://api.decolecta.com/v1/reniec'
-    RENIEC_API_TOKEN: str = os.getenv('RENIEC_API_TOKEN', 'sk_12581.twCsX39rBPOY9qvlixjVn9rWAR4L1diH')
+    RENIEC_API_TOKEN: str = os.getenv('RENIEC_API_TOKEN', '')
     
     # ============ GOOGLE SHEETS ============
-    GOOGLE_SHEET_ID: str = os.getenv('GOOGLE_SHEET_ID', '1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM')
+    GOOGLE_SHEET_ID: str = os.getenv('GOOGLE_SHEET_ID', '')
     GOOGLE_CREDENTIALS_JSON: Optional[str] = os.getenv('GOOGLE_CREDENTIALS_JSON', None)
     
     # ============ SUPABASE (OPCIONAL) ============
@@ -29,10 +29,10 @@ class Settings(BaseSettings):
     # Nota: Los nombres de tablas se usan como literales en el código.
     
     # ============ APPLICATION ============
-    DEBUG: bool = os.getenv('DEBUG', 'True').lower() == 'true'
+    DEBUG: bool = os.getenv('DEBUG', 'False').lower() == 'true'
     HOST: str = os.getenv('HOST', '0.0.0.0')
     PORT: int = int(os.getenv('PORT', '8000'))
-    ENV: str = os.getenv('ENV', 'development')
+    ENV: str = os.getenv('ENV', 'production')
     
     # ============ REDIS (OPCIONAL) ============
     REDIS_URL: Optional[str] = os.getenv('REDIS_URL', None)

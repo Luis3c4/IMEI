@@ -74,11 +74,11 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
-            "http://localhost:3000",      # Frontend local (React/Next.js)
-            "http://localhost:5173",      # Vite dev
-            "http://127.0.0.1:3000",
+            "https://imei-front.vercel.app",  # Frontend producción Vercel
+            "http://localhost:5173",          # Vite dev local
+            "http://localhost:3000",          # React/Next.js local
             "http://127.0.0.1:5173",
-            "*"                           # Permitir todos en desarrollo (cambiar en producción)
+            "http://127.0.0.1:3000"
         ],
         allow_credentials=True,
         allow_methods=["*"],              # Permitir todos los métodos
@@ -160,11 +160,12 @@ app = create_app()
 
 
 if __name__ == "__main__":
-    # Ejecutar con uvicorn
+    # Ejecutar con uvicorn (SOLO PARA DESARROLLO LOCAL)
+    # En producción se usa Gunicorn (ver Dockerfile)
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,
+        reload=True,  # Solo para desarrollo
         log_level="info"
     )
