@@ -70,8 +70,13 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     # Limpiar el string
     desc = model_desc.strip().upper()
     
-    # 1. MARCA: Detectar si empieza con IPHONE, SAMSUNG, etc
-    brands = ['IPHONE', 'SAMSUNG', 'GALAXY', 'XIAOMI', 'HUAWEI', 'OPPO', 'VIVO', 'ONEPLUS', 'GOOGLE PIXEL', 'PIXEL', 'MOTOROLA', 'NOKIA']
+    # 1. MARCA: Detectar si empieza con IPHONE, APPLE TV, SAMSUNG, etc
+    # Ordenar por longitud para matchear primero las más específicas
+    brands = [
+        'APPLE TV', 'APPLE WATCH', 'IPHONE', 'IPAD', 'MACBOOK', 'AIRPODS'
+    ]
+    brands.sort(key=len, reverse=True)
+    
     for brand in brands:
         if desc.startswith(brand):
             result['brand'] = brand
@@ -96,7 +101,7 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     colors = [
         'BLACK', 'WHITE', 'SILVER', 'GOLD', 'ROSE GOLD', 'SPACE GRAY', 'SPACE GREY',
         'MIDNIGHT', 'STARLIGHT', 'BLUE', 'RED', 'GREEN', 'YELLOW', 'PURPLE', 'PINK',
-        'ORANGE', 'GRAPHITE', 'SIERRA BLUE', 'ALPINE GREEN', 'DEEP PURPLE',
+        'CORANGE', 'GRAPHITE', 'SIERRA BLUE', 'ALPINE GREEN', 'DEEP PURPLE',
         'TITANIUM', 'NATURAL TITANIUM', 'BLUE TITANIUM', 'WHITE TITANIUM', 'BLACK TITANIUM'
     ]
     

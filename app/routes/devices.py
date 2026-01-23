@@ -12,6 +12,7 @@ from app.schemas import (
 from app.services.dhru_service import DHRUService
 from app.services.sheets_service import SheetsService
 from app.services.supabase_service import SupabaseService
+from app.services.product_pricing_service import product_pricing_service
 from app.utils.validators import DeviceInputValidator
 from app.utils.parsers import normalize_keys, parse_model_description
 
@@ -108,6 +109,13 @@ async def query_device(request: QueryDeviceRequest):
             
             logger.info(f"📱 Modelo parseado: {parsed_model}")
             
+            # Obtener precio del producto
+            product_price = product_pricing_service.get_product_price(parsed_model)
+            if product_price:
+                logger.info(f"💰 Precio del producto: ${product_price} USD")
+            else:
+                logger.warning(f"⚠️  No se encontró precio para el modelo: {parsed_model.get('full_model')}")
+            
             # Guardar en Supabase
             supabase_result = supabase_service.save_device_query(
                 device_info=result['data'],
@@ -115,7 +123,8 @@ async def query_device(request: QueryDeviceRequest):
                     'input_value': request.input_value,
                     'service_id': request.service_id,
                     'order_id': result.get('order_id'),
-                    'price': result.get('price'),
+                    'price': result.get('price'),  # Precio de consulta DHRU
+                    'product_price': product_price,  # Precio del producto
                     'balance': result.get('balance')
                 },
                 parsed_model=parsed_model
@@ -129,6 +138,10 @@ async def query_device(request: QueryDeviceRequest):
                     'item_id': supabase_result.get('item_id')
                 }
                 result['parsed_model'] = parsed_model
+                # Agregar precio del producto a la respuesta
+                if product_price:
+                    result['product_price'] = product_price
+                    result['product_currency'] = 'USD'
                 logger.info(f"✅ Guardado en Supabase: {supabase_result}")
             else:
                 result['supabase_error'] = supabase_result.get('error')

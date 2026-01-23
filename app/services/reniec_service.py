@@ -6,7 +6,7 @@ Permite consultar información de personas por DNI
 from typing import Dict, Any
 import httpx
 import logging
-from ..config import settings
+from app.config import settings
 
 # Configurar logging
 logger = logging.getLogger(__name__)

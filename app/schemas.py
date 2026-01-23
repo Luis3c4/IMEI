@@ -93,6 +93,8 @@ class QueryDeviceResponse(BaseModel):
     supabase_ids: Optional[SupabaseIds] = None
     supabase_error: Optional[str] = None
     parsed_model: Optional[ParsedModel] = None
+    product_price: Optional[float] = None
+    product_currency: Optional[str] = None
 
 
 class ErrorResponse(BaseModel):

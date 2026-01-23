@@ -1,7 +1,7 @@
 from typing import Dict, Any
 import requests
 import logging
-from ..config import settings
+from app.config import settings
 from app.utils.parsers import normalize_keys
 
 # Configurar logging
@@ -91,20 +91,24 @@ class DHRUService:
                     'error': f'Respuesta no es JSON válido: {response.text[:100]}'
                 }
             
+            # IDs de servicios permitidos
+            ALLOWED_SERVICE_IDS = [30, 219]
+            
             # DHRU devuelve la lista con la key "Service List"
             if 'Service List' in data:
                 services = data['Service List']
                 logger.info(f"Servicios obtenidos: {len(services)} servicios totales")
                 
-                # Filtrar solo servicios de Apple
-                apple_keywords = ['APPLE', 'IPHONE', 'ICLOUD', 'MACBOOK']
+                # Filtrar solo servicios con ID 30 y 219
                 filtered_services = [
                     service for service in services
-                    if any(keyword in service.get('name', '').upper() 
-                          for keyword in apple_keywords)
+                    if service.get('id') in ALLOWED_SERVICE_IDS or 
+                       service.get('service') in ALLOWED_SERVICE_IDS or
+                       int(service.get('id', 0)) in ALLOWED_SERVICE_IDS or
+                       int(service.get('service', 0)) in ALLOWED_SERVICE_IDS
                 ]
                 
-                logger.info(f"Servicios de Apple filtrados: {len(filtered_services)} servicios")
+                logger.info(f"Servicios filtrados (ID 30 y 219): {len(filtered_services)} servicios")
                 return {
                     'success': True,
                     'services': filtered_services,
@@ -115,12 +119,13 @@ class DHRUService:
             if data.get('status') == 'success':
                 services = data.get('services', [])
                 
-                # Filtrar solo servicios de Apple
-                apple_keywords = ['APPLE', 'IPHONE', 'ICLOUD', 'MACBOOK']
+                # Filtrar solo servicios con ID 30 y 219
                 filtered_services = [
                     service for service in services
-                    if any(keyword in service.get('serviceName', '').upper() 
-                          for keyword in apple_keywords)
+                    if service.get('id') in ALLOWED_SERVICE_IDS or 
+                       service.get('service') in ALLOWED_SERVICE_IDS or
+                       int(service.get('id', 0)) in ALLOWED_SERVICE_IDS or
+                       int(service.get('service', 0)) in ALLOWED_SERVICE_IDS
                 ]
                 
                 return {

@@ -1,7 +1,7 @@
 from typing import Dict, Any
 import gspread
 from google.oauth2.service_account import Credentials
-from ..config import settings
+from app.config import settings
 from datetime import datetime
 
 class SheetsService:
