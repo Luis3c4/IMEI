@@ -7,14 +7,15 @@ CREATE TABLE public.product_items (
   serial_number text NOT NULL UNIQUE,
   status text NOT NULL DEFAULT 'available'::text,
   created_at timestamp with time zone DEFAULT now(),
+  product_number text,
   CONSTRAINT product_items_pkey PRIMARY KEY (id),
   CONSTRAINT fk_variant FOREIGN KEY (variant_id) REFERENCES public.product_variants(id)
 );
 CREATE TABLE public.product_variants (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
   product_id integer NOT NULL,
-  color text NOT NULL,
-  capacity text NOT NULL,
+  color text,
+  capacity text,
   price numeric NOT NULL CHECK (price >= 0::numeric),
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),

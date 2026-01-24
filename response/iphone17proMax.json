@@ -1,0 +1,52 @@
+{
+  "success": true,
+  "data": {
+    "Model_Description": "IPHONE 17 PRO MAX SILVER 256GB-USA",
+    "IMEI": "353263424753348",
+    "IMEI2": "353263424546866",
+    "MEID": "35326342475334",
+    "Serial_Number": "Y3PYVFVY33",
+    "Estimated_Purchase_Date": "2025-12-20",
+    "EID": "89049032020008885500237251110249",
+    "Part_Number": "MFXG4LL/A",
+    "Part_Country": "USA/Canada",
+    "Part_Type": "Retail Unit",
+    "iCloud_Lock": "ON",
+    "Warranty_Status": "Limited Warranty",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Purchase_Country": "United States",
+    "Locked_Carrier": "10 - Unlock.",
+    "Sim-Lock_Status": "Unlocked"
+  },
+  "balance": 34.76,
+  "price": 0.15,
+  "order_id": "163130878",
+  "sheet_updated": true,
+  "total_registros": 42,
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM",
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 1,
+    "variant_id": 1,
+    "item_id": 1,
+    "product_number": "MFXG4LL/A",
+    "message": null
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": "IPHONE",
+    "model": "17 PRO MAX",
+    "color": "SILVER",
+    "capacity": "256GB",
+    "ram": null,
+    "country": "USA",
+    "full_model": "IPHONE 17 PRO MAX"
+  },
+  "product_price": 1199.0,
+  "product_currency": "USD"
+}

@@ -1,0 +1,45 @@
+{
+  "success": true,
+  "data": {
+    "Model_Description": "MBP 14 M5 SB/10C/10C GPU/16GB/512GB",
+    "Model": "MacBook Pro (14-inch M5)",
+    "Serial_Number": "F7LY29YMQJ",
+    "Estimated_Purchase_Date": "2025-12-10",
+    "Warranty_Status": "Limited Warranty",
+    "iCloud_Lock": "OFF",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Locked_Carrier": "N/A (Wi-Fi Device)",
+    "Sim-Lock_Status": "N/A"
+  },
+  "balance": 31.56,
+  "price": 0.05,
+  "order_id": "163217666",
+  "sheet_updated": true,
+  "total_registros": 54,
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM",
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 2,
+    "variant_id": 3,
+    "item_id": 3,
+    "product_number": null,
+    "message": null
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": "MACBOOK",
+    "model": "PRO (14-INCH M5) MBP 14 M5 /10C/10C GPU//",
+    "color": "SPACE BLACK",
+    "capacity": "512GB",
+    "ram": "16GB",
+    "country": null,
+    "full_model": "MACBOOK PRO (14-INCH M5) MBP 14 M5 /10C/10C GPU//"
+  },
+  "product_price": 1799.0,
+  "product_currency": "USD"
+}

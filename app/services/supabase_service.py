@@ -189,7 +189,8 @@ class SupabaseService:
                     product_items (
                         id,
                         serial_number,
-                        status
+                        status,
+                        product_number
                     )
                 )
                 """
@@ -212,6 +213,7 @@ class SupabaseService:
                     available_items = [item for item in items if isinstance(item, dict) and item.get('status') == 'available']
                     variant['quantity'] = len(available_items)
                     variant['serial_numbers'] = [item.get('serial_number') for item in available_items if isinstance(item, dict) and item.get('serial_number')]
+                    variant['product_numbers'] = [item.get('product_number') for item in available_items if isinstance(item, dict) and item.get('product_number')]
             
             logger.info(f"Productos con variantes obtenidos: {len(products)} productos")
             return {'success': True, 'data': products, 'count': len(products)}
@@ -226,6 +228,7 @@ class SupabaseService:
         Args:
             device_info: Datos del dispositivo desde DHRU
             metadata: Metadata adicional (order_id, price, product_price, etc)
+                     - service_id: ID del servicio DHRU usado (219 o 30)
                      - price: Precio de la consulta DHRU
                      - product_price: Precio del producto (opcional)
             parsed_model: Información parseada del Model_Description
@@ -240,8 +243,18 @@ class SupabaseService:
         
         try:
             # 1. BUSCAR O CREAR PRODUCTO
-            product_name = parsed_model.get('full_model') or device_info.get('Model_Description', 'Unknown')
+            # Determinar qué usar como nombre del producto según el servicio DHRU usado
+            service_id = metadata.get('service_id', '30')
             
+            if service_id == "219":
+                # Servicio 219 (IMEI): usar full_model parseado (más limpio)
+                product_name = parsed_model.get('full_model') or device_info.get('Model_Description', 'Unknown')
+                logger.info(f"📱 Servicio 219 - Usando full_model: {product_name}")
+            else:
+                # Servicio 30 (Serial): usar Model directo desde data (necesario para pricing)
+                product_name = device_info.get('Model') or parsed_model.get('full_model') or device_info.get('Model_Description', 'Unknown')
+                logger.info(f"📱 Servicio 30 - Usando Model: {product_name}")
+
             # Buscar si el producto ya existe
             product_response = self.client.table('products').select('*').eq('name', product_name).execute()
             
@@ -265,7 +278,16 @@ class SupabaseService:
             
             # 2. BUSCAR O CREAR VARIANTE (color + capacidad)
             color = parsed_model.get('color') or None
+            ram = parsed_model.get('ram') or None
             capacity = parsed_model.get('capacity') or None
+            
+            # Combinar RAM y capacidad en un solo string si ambos existen
+            if ram and capacity:
+                capacity_combined = f"{ram}/{capacity}"
+            elif capacity:
+                capacity_combined = capacity
+            else:
+                capacity_combined = None
             
             # Construir query dinámicamente para manejar NULL
             variant_query = self.client.table('product_variants').select('*').eq('product_id', product_id)
@@ -275,8 +297,8 @@ class SupabaseService:
             else:
                 variant_query = variant_query.is_('color', 'null')
             
-            if capacity is not None:
-                variant_query = variant_query.eq('capacity', capacity)
+            if capacity_combined is not None:
+                variant_query = variant_query.eq('capacity', capacity_combined)
             else:
                 variant_query = variant_query.is_('capacity', 'null')
             
@@ -286,7 +308,7 @@ class SupabaseService:
                 variant_data_item = variant_response.data[0]
                 variant_id = variant_data_item['id']  # type: ignore
                 color_display = color if color else 'NULL'
-                capacity_display = capacity if capacity else 'NULL'
+                capacity_display = capacity_combined if capacity_combined else 'NULL'
                 logger.info(f"✅ Variante existente: {color_display} {capacity_display} (ID: {variant_id})")
             else:
                 # Crear nueva variante con precio del producto o precio de consulta
@@ -295,7 +317,7 @@ class SupabaseService:
                 variant_data = {
                     'product_id': product_id,
                     'color': color,
-                    'capacity': capacity,
+                    'capacity': capacity_combined,
                     'price': product_price
                 }
                 new_variant = self.client.table('product_variants').insert(variant_data).execute()
@@ -304,10 +326,24 @@ class SupabaseService:
                 else:
                     raise ValueError('No se pudo crear la variante')
                 color_display = color if color else 'NULL'
-                capacity_display = capacity if capacity else 'NULL'
+                capacity_display = capacity_combined if capacity_combined else 'NULL'
                 logger.info(f"✅ Nueva variante creada: {color_display} {capacity_display} (ID: {variant_id})")
             
-            # 3. CREAR PRODUCT_ITEM (Serial Number único)
+            # 3. DETERMINAR PRODUCT NUMBER
+            from ..config.pricing import get_static_product_number
+            
+            # Si viene product_number en metadata (desde DHRU 219), usarlo
+            product_number = metadata.get('product_number')
+            
+            # Si no viene, intentar obtener el estático basado en el modelo parseado
+            if not product_number:
+                product_number = get_static_product_number(product_name)
+                if product_number:
+                    logger.info(f"✅ Product Number estático asignado: {product_number}")
+                else:
+                    logger.info(f"ℹ️  Producto sin Product Number estático: {product_name}")
+            
+            # 4. CREAR PRODUCT_ITEM (Serial Number único) con product_number
             serial_number = device_info.get('Serial_Number') or device_info.get('IMEI', 'Unknown')
             
             # Verificar si ya existe este serial
@@ -319,10 +355,18 @@ class SupabaseService:
                 logger.warning(f"⚠️  Serial number ya existe: {serial_number}")
                 item_data_existing = existing_item.data[0]
                 item_id = item_data_existing['id']  # type: ignore
+                
+                # Actualizar product_number si es necesario
+                if product_number:
+                    self.client.table('product_items').update({
+                        'product_number': product_number
+                    }).eq('id', item_id).execute()
+                    logger.info(f"✅ Product Number actualizado para item {item_id}: {product_number}")
             else:
                 item_data = {
                     'variant_id': variant_id,
                     'serial_number': serial_number,
+                    'product_number': product_number,  # NUEVO CAMPO
                     'status': 'available'  # Puedes ajustar según el iCloud_Lock u otro criterio
                 }
                 new_item = self.client.table('product_items').insert(item_data).execute()
@@ -330,13 +374,14 @@ class SupabaseService:
                     item_id = new_item.data[0]['id']  # type: ignore
                 else:
                     raise ValueError('No se pudo crear el product item')
-                logger.info(f"✅ Product item creado: {serial_number} (ID: {item_id})")
+                logger.info(f"✅ Product item creado: {serial_number} | PN: {product_number or 'N/A'} (ID: {item_id})")
             
             return {
                 'success': True,
                 'product_id': product_id,
                 'variant_id': variant_id,
                 'item_id': item_id,
+                'product_number': product_number,  # Agregar a respuesta
                 'message': 'Dispositivo guardado correctamente'
             }
             

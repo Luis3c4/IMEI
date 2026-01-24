@@ -64,13 +64,31 @@ async def query_device(request: QueryDeviceRequest):
             detail=validation['message']
         )
     
-    # 2. CONSULTAR DHRU
+    # 2. CONSULTAR DHRU (con fallback automático de 219 a 30)
     try:
         result = dhru_service.query_device(
             service_id=request.service_id,
             imei=request.input_value,
             format=request.formato
         )
+        
+        # FALLBACK: Si servicio 219 falla, intentar con servicio 30
+        # Esto indica que es un producto con product_number estático
+        used_fallback = False
+        if not result['success'] and request.service_id == "219":
+            logger.warning(f"⚠️  Servicio 219 falló, intentando fallback a servicio 30...")
+            result = dhru_service.query_device(
+                service_id="30",
+                imei=request.input_value,
+                format=request.formato
+            )
+            if result['success']:
+                used_fallback = True
+                result['used_service_fallback'] = True
+                result['original_service'] = "219"
+                result['fallback_service'] = "30"
+                logger.info("✅ Fallback exitoso: Servicio 30 utilizado")
+            
     except Exception as e:
         raise HTTPException(
             status_code=500,
@@ -80,6 +98,7 @@ async def query_device(request: QueryDeviceRequest):
     # 3. GUARDAR EN GOOGLE SHEETS si fue exitoso
     if result['success']:
         result['data'] = normalize_keys(result['data'])
+        user_product_number = request.product_number.strip().upper() if request.product_number else None
         
         try:
             sheets_result = sheets_service.add_record(
@@ -103,9 +122,14 @@ async def query_device(request: QueryDeviceRequest):
         
         # 4. GUARDAR EN SUPABASE si está conectado
         try:
-            # Parsear el Model_Description
-            model_desc = result['data'].get('Model_Description', '')
-            parsed_model = parse_model_description(model_desc)
+            # Parsear combinando Model y Model_Description para mejorar extracción
+            model_parts = [
+                result['data'].get('Model'),
+                result['data'].get('Model_Description')
+            ]
+            combined_model = " ".join([m for m in model_parts if m]).strip()
+
+            parsed_model = parse_model_description(combined_model)
             
             logger.info(f"📱 Modelo parseado: {parsed_model}")
             
@@ -116,15 +140,19 @@ async def query_device(request: QueryDeviceRequest):
             else:
                 logger.warning(f"⚠️  No se encontró precio para el modelo: {parsed_model.get('full_model')}")
             
+            # Prioridad: product_number digitado por el usuario > DHRU
+            product_number = user_product_number or result['data'].get('Part_Number')
+            
             # Guardar en Supabase
             supabase_result = supabase_service.save_device_query(
                 device_info=result['data'],
                 metadata={
                     'input_value': request.input_value,
-                    'service_id': request.service_id,
+                    'service_id': "30" if used_fallback else request.service_id,  # Usar servicio real
                     'order_id': result.get('order_id'),
                     'price': result.get('price'),  # Precio de consulta DHRU
                     'product_price': product_price,  # Precio del producto
+                    'product_number': product_number,  # Product Number manual o DHRU (o None)
                     'balance': result.get('balance')
                 },
                 parsed_model=parsed_model
@@ -135,7 +163,8 @@ async def query_device(request: QueryDeviceRequest):
                 result['supabase_ids'] = {
                     'product_id': supabase_result.get('product_id'),
                     'variant_id': supabase_result.get('variant_id'),
-                    'item_id': supabase_result.get('item_id')
+                    'item_id': supabase_result.get('item_id'),
+                    'product_number': supabase_result.get('product_number')  # Agregar a respuesta
                 }
                 result['parsed_model'] = parsed_model
                 # Agregar precio del producto a la respuesta

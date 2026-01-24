@@ -29,13 +29,11 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     
     # iPhone 17 Pro / Pro Max
     'IPHONE 17 PRO': {
-        '128GB': 1099.0,
         '256GB': 1199.0,
         '512GB': 1399.0,
         '1TB': 1599.0,
     },
     'IPHONE 17 PRO MAX': {
-        '128GB': 1099.0,
         '256GB': 1199.0,
         '512GB': 1399.0,
         '1TB': 1599.0,
@@ -50,7 +48,6 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     
     # iPhone 17 Air
     'IPHONE 17 AIR': {
-        '128GB': 999.0,
         '256GB': 1099.0,
     },
     
@@ -60,18 +57,38 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     
     # MacBook Air M3
     'MACBOOK AIR M3': {
+        '8GB/256GB': 999.0,
+        '8GB/512GB': 1299.0,
+        '16GB/256GB': 1199.0,
+        '16GB/512GB': 1499.0,
+        # Fallback por capacidad de almacenamiento solo
         '256GB': 999.0,
         '512GB': 1299.0,
+        'DEFAULT': 999.0,
     },
     
     # MacBook Pro 14" M5
-    'MACBOOK PRO 14': {
+    'MACBOOK PRO (14-INCH M5)': {   
+        '8GB/512GB': 1599.0,
+        '8GB/1TB': 1999.0,
+        '16GB/512GB': 1799.0,
+        '16GB/1TB': 2199.0,
+        '32GB/512GB': 1999.0,
+        '32GB/1TB': 2399.0,
+        # Fallback por capacidad de almacenamiento solo
         '512GB': 1599.0,
         '1TB': 1999.0,
     },
     
     # MacBook Pro 16" M5
-    'MACBOOK PRO 16': {
+    'MACBOOK PRO (16-INCH M5)': {
+        '8GB/512GB': 2499.0,
+        '8GB/1TB': 2899.0,
+        '16GB/512GB': 2699.0,
+        '16GB/1TB': 3099.0,
+        '32GB/512GB': 2899.0,
+        '32GB/1TB': 3299.0,
+        # Fallback por capacidad de almacenamiento solo
         '512GB': 2499.0,
         '1TB': 2899.0,
     },
@@ -146,6 +163,27 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     'AIRPODS MAX': {
         'DEFAULT': 549.0,
     },
+
+    # ============================================================
+    # Magic Keyboard Series
+    # ============================================================
+
+    'IPAD MAGIC KEYBOARD': {
+        'DEFAULT': 299.0,
+    },
+    
+    # ============================================================
+    # Apple Pencil Series
+    # ============================================================
+    'APPLE PENCIL PRO': {
+        'DEFAULT': 165.0,
+    },
+    # ============================================================
+    # Mackook whit ñ
+    # ============================================================
+    'MACBOOK AIR (13-INCH M4 2025)': {
+        'DEFAULT': 1220.0,
+    }
 }
 
 
@@ -173,4 +211,63 @@ def get_price_range(model: str) -> tuple[float, float] | None:
         prices = [p for k, p in APPLE_PRICING_USD[model_upper].items() if k != 'DEFAULT']
         if prices:
             return (min(prices), max(prices))
+    return None
+
+
+# ============================================================
+# PRODUCT NUMBERS ESTÁTICOS (Para productos sin variantes)
+# ============================================================
+
+STATIC_PRODUCT_NUMBERS: Dict[str, str] = {
+    # Apple Watch - Todos comparten el mismo Product Number
+    'APPLE WATCH SERIES 11': 'MEUX4LW/A',
+    'APPLE WATCH SE': 'MX2D3AM/A',
+    
+    # Apple TV
+    'APPLE TV 4K': 'MN893LL/A',
+    
+    # AirPods
+    'AIRPODS': 'MX2D3AM/A',
+    'AIRPODS PRO': 'MFHP4LL/A',
+    'AIRPODS MAX': 'MX2D3AM/A',
+
+    # Magic Keyboard
+    'MAGIC KEYBOARD': 'MWR23LL/A',
+
+    # Apple Pencil
+    'APPLE PENCIL PRO': 'MX2D3AM/A',
+
+    # Macbook whit ñ
+    'MACBOOK AIR': 'MEE3LUIS/A',
+}
+
+
+def get_static_product_number(product_name: str) -> str | None:
+    """
+    Obtiene el Product Number estático para productos que no varían
+    (Apple Watch, AirPods, Apple TV)
+    
+    Args:
+        product_name: Nombre del producto completo
+        
+    Returns:
+        Product Number estático o None si no aplica
+    
+    Examples:
+        >>> get_static_product_number('APPLE WATCH SERIES 11')
+        'MX2D3AM/A'
+        >>> get_static_product_number('IPHONE 17 PRO')
+        None
+    """
+    product_upper = product_name.upper()
+    
+    # Buscar coincidencia exacta primero
+    if product_upper in STATIC_PRODUCT_NUMBERS:
+        return STATIC_PRODUCT_NUMBERS[product_upper]
+    
+    # Buscar coincidencia parcial
+    for product_key, product_number in STATIC_PRODUCT_NUMBERS.items():
+        if product_key in product_upper:
+            return product_number
+    
     return None

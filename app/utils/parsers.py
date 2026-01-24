@@ -40,19 +40,17 @@ def normalize_keys(obj: Any) -> Any:
 def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     """
     Parsea el campo Model_Description para extraer información estructurada
+    Mejorado para extraer MÚLTIPLES capacidades (RAM y almacenamiento en MacBooks)
     
-    Ejemplo:
+    Ejemplo MacBook:
+        "MacBook Air (13-inch M4 2025) MBA 13 SKY BLUE 8C GPU 16GB 256GB"
+        -> {'brand': 'MACBOOK', 'model': 'AIR (13-INCH M4 2025)', 'color': 'BLUE',
+            'capacity': '256GB', 'ram': '16GB', ...}
+    
+    Ejemplo iPhone:
         "IPHONE 17 PRO MAX SILVER 512GB-USA"
-        
-    Returns:
-        {
-            'brand': 'IPHONE',
-            'model': '17 PRO MAX',
-            'color': 'SILVER',
-            'capacity': '512GB',
-            'country': 'USA',
-            'full_model': 'IPHONE 17 PRO MAX'
-        }
+        -> {'brand': 'IPHONE', 'model': '17 PRO MAX', 'color': 'SILVER',
+            'capacity': '512GB', 'ram': None, ...}
     """
     
     result: Dict[str, Optional[str]] = {
@@ -60,6 +58,7 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
         'model': None,
         'color': None,
         'capacity': None,
+        'ram': None,
         'country': None,
         'full_model': None
     }
@@ -69,9 +68,9 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     
     # Limpiar el string
     desc = model_desc.strip().upper()
+    original_desc = desc  # Guardar copia para encontrar capacidades
     
     # 1. MARCA: Detectar si empieza con IPHONE, APPLE TV, SAMSUNG, etc
-    # Ordenar por longitud para matchear primero las más específicas
     brands = [
         'APPLE TV', 'APPLE WATCH', 'IPHONE', 'IPAD', 'MACBOOK', 'AIRPODS'
     ]
@@ -83,12 +82,32 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
             desc = desc[len(brand):].strip()
             break
     
-    # 2. CAPACIDAD: Buscar patrón como 512GB, 1TB, etc
-    capacity_match = re.search(r'\b(\d+(?:GB|TB|MB))\b', desc, re.IGNORECASE)
-    if capacity_match:
-        result['capacity'] = capacity_match.group(1).upper()
-        # Remover capacidad del string
-        desc = desc.replace(capacity_match.group(0), '').strip()
+    # 2. MÚLTIPLES CAPACIDADES: Buscar TODAS las capacidades (GB/TB/MB)
+    capacities = re.findall(r'\b(\d+(?:GB|TB|MB))\b', original_desc, re.IGNORECASE)
+    capacities = [c.upper() for c in capacities]
+    
+    if len(capacities) >= 2 and result['brand'] == 'MACBOOK':
+        # MacBook: ordenar y asignar RAM (menor) y almacenamiento (mayor)
+        def capacity_to_mb(cap_str: str) -> int:
+            match = re.match(r'(\d+)(GB|TB)', cap_str)
+            if match:
+                value = int(match.group(1))
+                unit = match.group(2)
+                return value * 1024 if unit == 'TB' else value
+            return 0
+        
+        sorted_caps = sorted(set(capacities), key=capacity_to_mb)
+        result['ram'] = sorted_caps[0]  # Menor = RAM
+        result['capacity'] = sorted_caps[-1]  # Mayor = almacenamiento
+    elif capacities:
+        # iPhone, iPad, etc: una sola capacidad
+        result['capacity'] = capacities[-1]
+    
+    # Remover todas las capacidades encontradas del string
+    desc_temp = original_desc
+    for cap in capacities:
+        desc_temp = desc_temp.replace(cap, '').strip()
+    desc = desc_temp
     
     # 3. PAÍS: Buscar después de guión o al final (ej: -USA, -CHINA)
     country_match = re.search(r'[-/]([A-Z]{2,}(?:\s+[A-Z]+)?)$', desc)
@@ -97,17 +116,35 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
         # Remover país del string
         desc = desc[:country_match.start()].strip()
     
-    # 4. COLOR: Buscar colores comunes al final del string
+    # 4. COLOR: Buscar colores comunes Y SIGLAS DE COLORES (especialmente para MacBooks)
+    # Mapeo de siglas a colores (principalmente para MacBooks)
+    color_abbreviations = {
+        'SB': 'SPACE BLACK',
+        'MB': 'MIDNIGHT BLACK',
+        'SG': 'SPACE GRAY',
+        'SL': 'SILVER',
+        'GD': 'GOLD',
+        'RG': 'ROSE GOLD',
+        'BK': 'BLACK',
+        'WH': 'WHITE',
+        'MN': 'MIDNIGHT',
+        'ST': 'STARLIGHT',
+        'AB': 'ALPINE BLUE',
+        'DB': 'DEEP BLUE',
+    }
+    
     colors = [
         'BLACK', 'WHITE', 'SILVER', 'GOLD', 'ROSE GOLD', 'SPACE GRAY', 'SPACE GREY',
-        'MIDNIGHT', 'STARLIGHT', 'BLUE', 'RED', 'GREEN', 'YELLOW', 'PURPLE', 'PINK',
+        'MIDNIGHT', 'STARLIGHT', 'DEEP BLUE', 'RED', 'GREEN', 'YELLOW', 'PURPLE', 'PINK',
         'CORANGE', 'GRAPHITE', 'SIERRA BLUE', 'ALPINE GREEN', 'DEEP PURPLE',
-        'TITANIUM', 'NATURAL TITANIUM', 'BLUE TITANIUM', 'WHITE TITANIUM', 'BLACK TITANIUM'
+        'TITANIUM', 'NATURAL TITANIUM', 'BLUE TITANIUM', 'WHITE TITANIUM', 'BLACK TITANIUM',
+        'SKY BLUE', 'SPACE BLACK', 'MIDNIGHT BLACK', 'ALPINE BLUE'
     ]
     
-    # Ordenar colores por longitud descendente para matchear los más específicos primero
+    # Ordenar por longitud descendente para los más específicos primero
     colors.sort(key=len, reverse=True)
     
+    # Primero intentar colores completos
     for color in colors:
         # Buscar el color al final o antes de otros tokens
         if color in desc:
@@ -116,8 +153,27 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
             desc = desc.replace(color, '').strip()
             break
     
-    # 5. MODELO: Lo que queda es el modelo
-    desc = re.sub(r'\s+', ' ', desc).strip()  # Normalizar espacios
+    # Si no encontró color completo, buscar siglas de colores (ej: SB para Space Black)
+    if not result['color']:
+        for abbr, full_color in color_abbreviations.items():
+            # Buscar la sigla como palabra independiente o seguida de números/caracteres
+            # Patrón: la sigla seguida de /número o espacio o fin de string
+            pattern = rf'\b{re.escape(abbr)}(?=[\s/\d]|$)'
+            if re.search(pattern, desc):
+                result['color'] = full_color
+                # Remover la sigla del string
+                desc = re.sub(pattern, '', desc).strip()
+                break
+    
+    # 5. MODELO: Lo que queda es el modelo (sin marca, color, capacidades, país)
+    desc = re.sub(r'\s+', ' ', desc).strip()
+    
+    # Remover menciones adicionales de la marca dentro del modelo para evitar duplicación
+    if result['brand'] and desc:
+        # Remover todas las ocurrencias de la marca (case insensitive)
+        desc = re.sub(r'\b' + re.escape(result['brand']) + r'\b', '', desc, flags=re.IGNORECASE).strip()
+        desc = re.sub(r'\s+', ' ', desc).strip()
+    
     if desc:
         result['model'] = desc
     
