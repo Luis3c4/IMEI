@@ -120,11 +120,12 @@ async def bulk_toggle_items_sold(request: BulkToggleRequest):
     for item_id in request.item_ids:
         try:
             # Obtener el status actual
+            assert supabase_service.client is not None
             result = supabase_service.client.table('product_items').select(
                 'id, status, serial_number'
             ).eq('id', item_id).execute()
             
-            if not result.data:
+            if not result.data or not isinstance(result.data, list) or len(result.data) == 0:
                 results.append({
                     'item_id': item_id,
                     'success': False,
@@ -133,8 +134,18 @@ async def bulk_toggle_items_sold(request: BulkToggleRequest):
                 failed_count += 1
                 continue
             
-            current_status = result.data[0]['status']
-            serial_number = result.data[0].get('serial_number', '')
+            item_data = result.data[0]
+            if not isinstance(item_data, dict):
+                results.append({
+                    'item_id': item_id,
+                    'success': False,
+                    'error': 'Datos inválidos'
+                })
+                failed_count += 1
+                continue
+            
+            current_status = item_data.get('status', '')
+            serial_number = item_data.get('serial_number', '')
             new_status = 'sold' if current_status == 'available' else 'available'
             
             # Actualizar status

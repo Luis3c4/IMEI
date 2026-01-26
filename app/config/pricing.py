@@ -55,42 +55,53 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     # MacBook Series
     # ============================================================
     
-    # MacBook Air M3
-    'MACBOOK AIR M3': {
-        '8GB/256GB': 999.0,
-        '8GB/512GB': 1299.0,
-        '16GB/256GB': 1199.0,
-        '16GB/512GB': 1499.0,
+    # MacBook Air M4
+    'MACBOOK AIR (13-INCH M4': {
+        '16GB/256GB': 999.0,
+        '16GB/512GB': 1199.0,
+        '24GB/512GB': 1399.0,
         # Fallback por capacidad de almacenamiento solo
         '256GB': 999.0,
         '512GB': 1299.0,
         'DEFAULT': 999.0,
     },
-    
-    # MacBook Pro 14" M5
-    'MACBOOK PRO (14-INCH M5)': {   
-        '8GB/512GB': 1599.0,
-        '8GB/1TB': 1999.0,
-        '16GB/512GB': 1799.0,
-        '16GB/1TB': 2199.0,
-        '32GB/512GB': 1999.0,
-        '32GB/1TB': 2399.0,
+    'MACBOOK AIR (15-INCH M4': {
+        '16GB/256GB': 1199.0,
+        '16GB/512GB': 1399.0,
+        '24GB/512GB': 1599.0,
+        # Fallback por capacidad de almacenamiento solo
+        '256GB': 1199.0,
+        '512GB': 1399.0,
+        'DEFAULT': 1199.0,
+    },
+    # MacBook Pro 14" M4 PRO/MAX
+    'MACBOOK PRO (14-INCH': {   
+        '24GB/512GB': 1999.0,
+        '24GB/1TB': 2399.0,
+        '36GB/1TB': 2399.0,
         # Fallback por capacidad de almacenamiento solo
         '512GB': 1599.0,
         '1TB': 1999.0,
     },
     
-    # MacBook Pro 16" M5
-    'MACBOOK PRO (16-INCH M5)': {
-        '8GB/512GB': 2499.0,
-        '8GB/1TB': 2899.0,
-        '16GB/512GB': 2699.0,
-        '16GB/1TB': 3099.0,
-        '32GB/512GB': 2899.0,
-        '32GB/1TB': 3299.0,
+    # MacBook Pro 16" M4 PRO/MAX
+    'MACBOOK PRO (16-INCH': {
+        '24GB/512GB': 2499.0,
+        '48GB/512GB': 2899.0,
+        '16GB/1TB': 2899.0,
         # Fallback por capacidad de almacenamiento solo
         '512GB': 2499.0,
         '1TB': 2899.0,
+    },
+
+    # MacBook Pro 14" M5
+    'MACBOOK PRO (14-INCH M5)': {   
+        '16GB/512GB': 1599.0,
+        '16GB/1TB': 1799.0,
+        '24GB/1TB': 1999.0,
+        # Fallback por capacidad de almacenamiento solo
+        '512GB': 1599.0,
+        '1TB': 1999.0,
     },
     
     # ============================================================
@@ -181,7 +192,7 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     # ============================================================
     # Mackook whit ñ
     # ============================================================
-    'MACBOOK AIR (13-INCH M4 2025)': {
+    'MACBOOK AIR': {
         'DEFAULT': 1220.0,
     }
 }

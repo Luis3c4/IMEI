@@ -21,24 +21,33 @@ class SupabaseService:
     def __init__(self):
         """Inicializa la conexión con Supabase"""
         self.client: Optional[Client] = None
-        
+        self._init_client()
+
+    def _init_client(self) -> bool:
+        """Intenta inicializar el cliente solo si hay credenciales"""
         if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
             logger.warning("⚠️  Credenciales de Supabase no configuradas")
-            return
-        
+            self.client = None
+            return False
+
         try:
             self.client = create_client(
                 settings.SUPABASE_URL,
                 settings.SUPABASE_KEY
             )
             logger.info("✅ Conexión con Supabase establecida")
+            return True
         except Exception as e:
             logger.error(f"❌ Error al conectar con Supabase: {str(e)}")
             self.client = None
+            return False
     
     def is_connected(self) -> bool:
         """Verifica si está conectado a Supabase"""
-        return self.client is not None
+        if self.client is not None:
+            return True
+        # Reintenta la conexión en caso de que el cliente haya quedado en None
+        return self._init_client()
     
     # ==================== TABLA: DEVICES ====================
     
