@@ -1,0 +1,44 @@
+{
+  "success": true,
+  "data": {
+    "Model": "Apple Pencil Pro",
+    "Serial_Number": "J5634DN435",
+    "Estimated_Purchase_Date": "2025-09-11",
+    "Warranty_Status": "Limited Warranty",
+    "iCloud_Lock": "ON",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Locked_Carrier": "N/A (Wi-Fi Device)",
+    "Sim-Lock_Status": "N/A"
+  },
+  "balance": 29.41,
+  "price": 0.05,
+  "order_id": "163403096",
+  "sheet_updated": true,
+  "total_registros": 70,
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM",
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 8,
+    "variant_id": 9,
+    "item_id": 8,
+    "product_number": "MX2D3AM/A",
+    "message": null
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": "APPLE PENCIL",
+    "model": "PRO",
+    "color": null,
+    "capacity": null,
+    "ram": null,
+    "country": null,
+    "full_model": "APPLE PENCIL PRO"
+  },
+  "product_price": 165.0,
+  "product_currency": "USD"
+}

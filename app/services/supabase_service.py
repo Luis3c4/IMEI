@@ -4,6 +4,7 @@ Base de datos PostgreSQL con API REST/GraphQL
 """
 
 import logging
+import re
 from typing import Dict, Any, List, Optional
 from app.config import settings
 
@@ -22,6 +23,15 @@ class SupabaseService:
         """Inicializa la conexión con Supabase"""
         self.client: Optional[Client] = None
         self._init_client()
+
+    @staticmethod
+    def _clean_apple_watch_model(name: Optional[str]) -> Optional[str]:
+        """Elimina tamaños 41/42/44/45/46/49MM del nombre para guardar limpio."""
+        if not name or not isinstance(name, str):
+            return name
+        cleaned = re.sub(r'\b(41|42|44|45|46|49)\s*MM\b', '', name, flags=re.IGNORECASE)
+        cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+        return cleaned or name.strip()
 
     def _init_client(self) -> bool:
         """Intenta inicializar el cliente solo si hay credenciales"""
@@ -199,7 +209,8 @@ class SupabaseService:
                         id,
                         serial_number,
                         status,
-                        product_number
+                        product_number,
+                        model_description
                     )
                 )
                 """
@@ -255,13 +266,17 @@ class SupabaseService:
             # Determinar qué usar como nombre del producto según el servicio DHRU usado
             service_id = metadata.get('service_id', '30')
             
+            raw_model = device_info.get('Model')
+            clean_device_model = self._clean_apple_watch_model(raw_model)
+
             if service_id == "219":
-                # Servicio 219 (IMEI): usar full_model parseado (más limpio)
-                product_name = parsed_model.get('full_model') or device_info.get('Model_Description', 'Unknown')
-                logger.info(f"📱 Servicio 219 - Usando full_model: {product_name}")
+                # Servicio 219 (IMEI): 
+                # Prioridad: Model (limpio) > full_model parseado > Model_Description
+                product_name = clean_device_model or parsed_model.get('full_model') or device_info.get('Model_Description', 'Unknown')
+                logger.info(f"📱 Servicio 219 - Usando Model/full_model: {product_name}")
             else:
                 # Servicio 30 (Serial): usar Model directo desde data (necesario para pricing)
-                product_name = device_info.get('Model') or parsed_model.get('full_model') or device_info.get('Model_Description', 'Unknown')
+                product_name = clean_device_model or parsed_model.get('full_model') or device_info.get('Model_Description', 'Unknown')
                 logger.info(f"📱 Servicio 30 - Usando Model: {product_name}")
 
             # Buscar si el producto ya existe
@@ -275,8 +290,7 @@ class SupabaseService:
                 # Crear nuevo producto
                 product_data = {
                     'name': product_name,
-                    'category': parsed_model.get('brand') or None,
-                    'description': device_info.get('Model_Description')
+                    'category': parsed_model.get('brand') or None
                 }
                 new_product = self.client.table('products').insert(product_data).execute()
                 if new_product.data and len(new_product.data) > 0:
@@ -339,18 +353,24 @@ class SupabaseService:
                 logger.info(f"✅ Nueva variante creada: {color_display} {capacity_display} (ID: {variant_id})")
             
             # 3. DETERMINAR PRODUCT NUMBER
-            from ..config.pricing import get_static_product_number
+            from ..config.pricing_pnumbers import get_static_product_number
             
             # Si viene product_number en metadata (desde DHRU 219), usarlo
             product_number = metadata.get('product_number')
             
             # Si no viene, intentar obtener el estático basado en el modelo parseado
             if not product_number:
-                product_number = get_static_product_number(product_name)
-                if product_number:
-                    logger.info(f"✅ Product Number estático asignado: {product_number}")
+                # Asegurar que product_name es un str antes de pasarlo a la función
+                safe_product_name = product_name if isinstance(product_name, str) else (str(product_name) if product_name is not None else "")
+                if not safe_product_name:
+                    logger.info(f"ℹ️  Producto sin nombre válido para buscar Product Number: {product_name}")
+                    product_number = None
                 else:
-                    logger.info(f"ℹ️  Producto sin Product Number estático: {product_name}")
+                    product_number = get_static_product_number(safe_product_name)
+                    if product_number:
+                        logger.info(f"✅ Product Number estático asignado: {product_number}")
+                    else:
+                        logger.info(f"ℹ️  Producto sin Product Number estático: {safe_product_name}")
             
             # 4. CREAR PRODUCT_ITEM (Serial Number único) con product_number
             serial_number = device_info.get('Serial_Number') or device_info.get('IMEI', 'Unknown')
@@ -365,17 +385,24 @@ class SupabaseService:
                 item_data_existing = existing_item.data[0]
                 item_id = item_data_existing['id']  # type: ignore
                 
-                # Actualizar product_number si es necesario
+                # Actualizar product_number y model_description si es necesario
+                update_data = {}
                 if product_number:
-                    self.client.table('product_items').update({
-                        'product_number': product_number
-                    }).eq('id', item_id).execute()
-                    logger.info(f"✅ Product Number actualizado para item {item_id}: {product_number}")
+                    update_data['product_number'] = product_number
+                
+                model_description = device_info.get('Model_Description')
+                if model_description:
+                    update_data['model_description'] = model_description
+                
+                if update_data:
+                    self.client.table('product_items').update(update_data).eq('id', item_id).execute()
+                    logger.info(f"✅ Datos actualizados para item {item_id}: {', '.join(update_data.keys())}")
             else:
                 item_data = {
                     'variant_id': variant_id,
                     'serial_number': serial_number,
-                    'product_number': product_number,  # NUEVO CAMPO
+                    'product_number': product_number,
+                    'model_description': device_info.get('Model_Description'),  # Model_Description específico del dispositivo
                     'status': 'available'  # Puedes ajustar según el iCloud_Lock u otro criterio
                 }
                 new_item = self.client.table('product_items').insert(item_data).execute()

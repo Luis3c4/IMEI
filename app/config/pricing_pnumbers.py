@@ -29,21 +29,22 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     
     # iPhone 17 Pro / Pro Max
     'IPHONE 17 PRO': {
-        '256GB': 1199.0,
-        '512GB': 1399.0,
-        '1TB': 1599.0,
+        '256GB': 1099.0,
+        '512GB': 1299.0,
+        '1TB': 1499.0,
     },
-    'IPHONE 17 PRO MAX': {
+    'IPHONE 17 PRO MAX': {  
         '256GB': 1199.0,
         '512GB': 1399.0,
         '1TB': 1599.0,
+        '2TB': 1999.0,
     },
     
     # iPhone 17 Base
     'IPHONE 17': {
-        '128GB': 799.0,
-        '256GB': 899.0,
-        '512GB': 1099.0,
+        '128GB': 699.0,
+        '256GB': 799.0,
+        '512GB': 999.0,
     },
     
     # iPhone 17 Air
@@ -110,15 +111,18 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     
     # Apple Watch Series 11
     'APPLE WATCH SERIES 11': {
-        '41MM': 399.0,
-        '45MM': 429.0,
+        '42MM': 399.0,
+        '46MM': 429.0,
     },
     
     # Apple Watch Ultra 3
     'APPLE WATCH ULTRA 3': {
         '49MM': 799.0,
     },
-    
+    # Apple Watch Ultra 2
+    'APPLE WATCH ULTRA 2': {
+        '49MM': 799.0,
+    },
     # Apple Watch SE
     'APPLE WATCH SE': {
         '40MM': 249.0,
@@ -138,13 +142,23 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     # ============================================================
     # iPad Series
     # ============================================================
-    
+    'IPAD MINI': {
+        '128GB': 499.0,
+        '256GB': 599.0,
+        '512GB': 799.0,
+    },
     # iPad Pro M5
-    'IPAD PRO': {
-        '128GB': 999.0,
-        '256GB': 1099.0,
-        '512GB': 1299.0,
+    'IPAD PRO 11-INCH': {
+        '256GB': 999.0,
+        '512GB': 1199.0,
+        '1TB': 1599.0,
+        '2TB': 1999.0,
+    },
+    'IPAD PRO 13-INCH': {
+        '256GB': 1299.0,
+        '512GB': 1499.0,
         '1TB': 1899.0,
+        '2TB': 2299.0,
     },
     
     # iPad Air M2
@@ -187,7 +201,7 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     # Apple Pencil Series
     # ============================================================
     'APPLE PENCIL PRO': {
-        'DEFAULT': 165.0,
+        'DEFAULT': 129.0,
     },
     # ============================================================
     # Mackook whit ñ
@@ -236,6 +250,10 @@ STATIC_PRODUCT_NUMBERS: Dict[str, str] = {
     
     # Apple TV
     'APPLE TV 4K': 'MN893LL/A',
+
+    # Ipad pro
+    'IPAD PRO 13-INCH': 'MPF37LL/A',
+    'IPAD PRO 11-INCH': 'MRP4RLL/A',
     
     # AirPods
     'AIRPODS': 'MX2D3AM/A',

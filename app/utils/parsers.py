@@ -72,7 +72,7 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     
     # 1. MARCA: Detectar si empieza con IPHONE, APPLE TV, SAMSUNG, etc
     brands = [
-        'APPLE TV', 'APPLE WATCH', 'IPHONE', 'IPAD', 'MACBOOK', 'AIRPODS'
+        'APPLE TV', 'APPLE WATCH', 'IPHONE', 'IPAD', 'MACBOOK', 'AIRPODS','APPLE PENCIL'
     ]
     brands.sort(key=len, reverse=True)
     
@@ -107,6 +107,17 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     desc_temp = original_desc
     for cap in capacities:
         desc_temp = desc_temp.replace(cap, '').strip()
+
+    # Apple Watch: extraer tamaño (41/42/44/45/46/49mm) como capacidad y removerlo del modelo
+    if result['brand'] == 'APPLE WATCH':
+        size_match = re.search(r'\b(41|42|44|45|46|49)\s*(?:MM)?\b', original_desc, re.IGNORECASE)
+        if size_match:
+            size_value = f"{size_match.group(1).upper()}MM"
+            result['capacity'] = size_value
+            # Quitar cualquier referencia al tamaño para que no quede en el modelo
+            desc_temp = re.sub(r'\b(41|42|44|45|46|49)\s*(?:MM)?\b', '', desc_temp, flags=re.IGNORECASE)
+            desc_temp = re.sub(r'\s+', ' ', desc_temp).strip()
+
     desc = desc_temp
     
     # 3. PAÍS: Buscar después de guión o al final (ej: -USA, -CHINA)
@@ -132,14 +143,16 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
         'AB': 'ALPINE BLUE',
         'DB': 'DEEP BLUE',
         'SPB': 'SPACE BLACK',
+        'NT': 'NATURAL',
+        'SLVR': 'SILVER',
     }
     
     colors = [
         'BLACK', 'WHITE', 'SILVER', 'GOLD', 'ROSE GOLD', 'SPACE GRAY', 'SPACE GREY',
         'MIDNIGHT', 'STARLIGHT', 'DEEP BLUE', 'RED', 'GREEN', 'YELLOW', 'PURPLE', 'PINK',
-        'CORANGE', 'GRAPHITE', 'SIERRA BLUE', 'ALPINE GREEN', 'DEEP PURPLE',
+        'CORANGE', 'GRAPHITE', 'SIERRA BLUE', 'ALPINE GREEN', 'DEEP PURPLE','SAGE','DBLUE',
         'TITANIUM', 'NATURAL TITANIUM', 'BLUE TITANIUM', 'WHITE TITANIUM', 'BLACK TITANIUM',
-        'SKY BLUE', 'SPACE BLACK', 'MIDNIGHT BLACK', 'ALPINE BLUE'
+        'SKY BLUE', 'SPACE BLACK', 'MIDNIGHT BLACK', 'ALPINE BLUE', 'MIST BLUE','LAVENDER', 'BLUE',
     ]
     
     # Ordenar por longitud descendente para los más específicos primero

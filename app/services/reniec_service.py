@@ -61,6 +61,17 @@ class ReniecService:
                 # Verificar código de estado
                 if response.status_code == 200:
                     data = response.json()
+                    
+                    # Convertir nombres a formato título (Primera Letra Mayúscula)
+                    if 'first_name' in data and data['first_name']:
+                        data['first_name'] = data['first_name'].title()
+                    if 'first_last_name' in data and data['first_last_name']:
+                        data['first_last_name'] = data['first_last_name'].title()
+                    if 'second_last_name' in data and data['second_last_name']:
+                        data['second_last_name'] = data['second_last_name'].title()
+                    if 'full_name' in data and data['full_name']:
+                        data['full_name'] = data['full_name'].title()
+                    
                     logger.info(f"Consulta exitosa para DNI: {numero}")
                     return {
                         'success': True,

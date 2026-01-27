@@ -9,7 +9,7 @@ import logging
 import re
 from typing import Dict, Optional, Any
 
-from ..config.pricing import APPLE_PRICING_USD
+from ..config.pricing_pnumbers import APPLE_PRICING_USD
 
 logger = logging.getLogger(__name__)
 

@@ -8,6 +8,7 @@ CREATE TABLE public.product_items (
   status text NOT NULL DEFAULT 'available'::text,
   created_at timestamp with time zone DEFAULT now(),
   product_number text,
+  model_description text,
   CONSTRAINT product_items_pkey PRIMARY KEY (id),
   CONSTRAINT fk_variant FOREIGN KEY (variant_id) REFERENCES public.product_variants(id)
 );
@@ -26,7 +27,6 @@ CREATE TABLE public.products (
   id integer GENERATED ALWAYS AS IDENTITY NOT NULL,
   name text NOT NULL,
   category text,
-  description text,
   created_at timestamp with time zone DEFAULT now(),
   updated_at timestamp with time zone DEFAULT now(),
   CONSTRAINT products_pkey PRIMARY KEY (id)
