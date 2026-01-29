@@ -74,7 +74,7 @@ def create_app() -> FastAPI:
     app.add_middleware(
         CORSMiddleware,
         allow_origins=[
-            "https://imei-front.vercel.app",  # Frontend producción Vercel
+            "https://falcontec.vercel.app",  # Frontend producción Vercel
             "http://localhost:5173",          # Vite dev local
             "http://localhost:3000",          # React/Next.js local
             "http://127.0.0.1:5173",
