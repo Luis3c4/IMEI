@@ -382,8 +382,8 @@ Devuelve la URL y ID del Google Sheet
 
 | Variable | Descripción | Valor por Defecto |
 |----------|-------------|-------------------|
-| `DHRU_API_KEY` | Clave de API de DHRU | `1PA-6X8-BMQ-T28-X6H-8WP-7CL-GTK` |
-| `DHRU_API_USER` | Email de usuario DHRU | `javie.apaza@gmail.com` |
+| `DHRU_API_KEY` | Clave de API de DHRU | `tu clave DHRU` |
+| `DHRU_API_USER` | Email de usuario DHRU | `tu_correo@gmail.com` |
 | `GOOGLE_SHEET_ID` | ID del Google Sheet | `1e1P39zCbyfPD7jg_...` |
 | `GOOGLE_CREDENTIALS_JSON` | Credenciales de Google (JSON o ruta) | - |
 | `DEBUG` | Modo debug | `False` |
@@ -436,7 +436,7 @@ APIs:        DHRU, Google Sheets API
 
 ## 👥 Autores
 
-- Javi Apaza
+- luis choqque 
 
 ## 📧 Contacto
 

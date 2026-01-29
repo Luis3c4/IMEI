@@ -1,0 +1,45 @@
+{
+  "success": true,
+  "data": {
+    "Model_Description": "MBA 13 SKY BLUE 8C GPU 16GB 256GB",
+    "Model": "MacBook Air (13-inch M4 2025)",
+    "Serial_Number": "JKPF347JWX",
+    "Estimated_Purchase_Date": "2025-12-03",
+    "Warranty_Status": "Limited Warranty",
+    "iCloud_Lock": "OFF",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Locked_Carrier": "N/A (Wi-Fi Device)",
+    "Sim-Lock_Status": "N/A"
+  },
+  "balance": 35.36,
+  "price": 0.05,
+  "order_id": "163126434",
+  "sheet_updated": true,
+  "total_registros": 38,
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM",
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 4,
+    "variant_id": 4,
+    "item_id": 4,
+    "product_number": "MEE3LUIS/A",
+    "message": null
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": "MACBOOK",
+    "model": "MACBOOK AIR (13-INCH M4 2025) MBA 13 8C GPU",
+    "color": "SKY BLUE",
+    "capacity": "256GB",
+    "ram": "16GB",
+    "country": null,
+    "full_model": "MACBOOK MACBOOK AIR (13-INCH M4 2025) MBA 13 8C GPU"
+  },
+  "product_price": null,
+  "product_currency": null
+}

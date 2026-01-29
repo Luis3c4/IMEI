@@ -1,0 +1,50 @@
+{
+  "success": true,
+  "data": {
+    "Model_Description": "APPLE WATCH ULTRA3 49 BK TI BC TL ML-USA",
+    "Model": "Apple Watch Ultra 3 (GPS + Cellular) 49mm",
+    "IMEI": "356187981875516",
+    "Serial_Number": "KG6CW7PHXL",
+    "Estimated_Purchase_Date": "2025-12-10",
+    "EID": "89043052011008887025014548526656",
+    "Part_Number": "MF1H4LW/A",
+    "Part_Type": "Retail Unit",
+    "iCloud_Lock": "OFF",
+    "Warranty_Status": "Limited Warranty",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Purchase_Country": "United States",
+    "Locked_Carrier": "10 - Unlock.",
+    "Sim-Lock_Status": "Unlocked"
+  },
+  "balance": 29.01,
+  "price": 0.15,
+  "order_id": "163493564",
+  "sheet_updated": true,
+  "total_registros": 74,
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM",
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 12,
+    "variant_id": 13,
+    "item_id": 12,
+    "product_number": "MF1H4LW/A",
+    "message": null
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": "APPLE WATCH",
+    "model": "ULTRA 3 (GPS + CELLULAR) 49MM ULTRA3 49 TI BC TL ML",
+    "color": "BLACK",
+    "capacity": null,
+    "ram": null,
+    "country": "USA",
+    "full_model": "APPLE WATCH ULTRA 3 (GPS + CELLULAR) 49MM ULTRA3 49 TI BC TL ML"
+  },
+  "product_price": 799.0,
+  "product_currency": "USD"
+}

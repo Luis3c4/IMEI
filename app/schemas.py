@@ -16,6 +16,11 @@ class QueryDeviceRequest(BaseModel):
         description="IMEI del dispositivo",
         json_schema_extra={"example": "356789012345678"}
     )
+    product_number: Optional[str] = Field(
+        default=None,
+        description="Product Number ingresado manualmente (opcional)",
+        json_schema_extra={"example": "MXN93LL/A"}
+    )
     service_id: str = Field(
         default="30",
         description="ID del servicio DHRU",
@@ -33,6 +38,7 @@ class QueryDeviceRequest(BaseModel):
             "examples": [
                 {
                     "input_value": "356789012345678",
+                    "product_number": "MXN93LL/A",
                     "service_id": "30",
                     "formato": "beta"
                 }
@@ -67,6 +73,7 @@ class ParsedModel(BaseModel):
     model: Optional[str] = None
     color: Optional[str] = None
     capacity: Optional[str] = None
+    ram: Optional[str] = None
     country: Optional[str] = None
     full_model: Optional[str] = None
 
@@ -76,6 +83,8 @@ class SupabaseIds(BaseModel):
     product_id: Optional[int] = None
     variant_id: Optional[int] = None
     item_id: Optional[int] = None
+    product_number: Optional[str] = None
+    message: Optional[str] = None
 
 
 class QueryDeviceResponse(BaseModel):
@@ -93,6 +102,8 @@ class QueryDeviceResponse(BaseModel):
     supabase_ids: Optional[SupabaseIds] = None
     supabase_error: Optional[str] = None
     parsed_model: Optional[ParsedModel] = None
+    product_price: Optional[float] = None
+    product_currency: Optional[str] = None
 
 
 class ErrorResponse(BaseModel):

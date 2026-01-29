@@ -1,0 +1,40 @@
+{
+  "success": true,
+  "data": {
+    "Model_Description": "APPLE TV 4K (3RD GEN) WI-FI+ETH-USA",
+    "Model": "Apple TV 4K (3rd generation)",
+    "Serial_Number": "HP0QD7X61M",
+    "Estimated_Purchase_Date": "2025-11-24",
+    "Warranty_Status": "Limited Warranty",
+    "iCloud_Lock": "OFF",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Locked_Carrier": "N/A (Wi-Fi Device)",
+    "Sim-Lock_Status": "N/A"
+  },
+  "balance": 37.26,
+  "price": 0.05,
+  "order_id": "162807871",
+  "sheet_updated": true,
+  "total_registros": 15,
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM",
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 9,
+    "variant_id": 18,
+    "item_id": 22
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": null,
+    "model": "APPLE TV 4K (3RD GEN) WI-FI+ETH",
+    "color": null,
+    "capacity": null,
+    "country": "USA",
+    "full_model": "APPLE TV 4K (3RD GEN) WI-FI+ETH"
+  }
+}

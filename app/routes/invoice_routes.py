@@ -173,14 +173,12 @@ async def preview_factura(request: InvoiceRequest):
                 detail="Debe incluir al menos un producto"
             )
         
-        location_dict = request.location.model_dump()
         customer_dict = request.customer.model_dump()
         products_list = [p.model_dump() for p in request.products]
         invoice_info_dict = request.invoice_info.model_dump()
         
         pdf_bytes = invoice_service.generar_factura_dinamica(
             order_date=request.order_date,
-            location=location_dict,
             order_number=request.order_number,
             customer=customer_dict,
             products=products_list,

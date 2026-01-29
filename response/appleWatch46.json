@@ -1,0 +1,45 @@
+{
+  "success": true,
+  "data": {
+    "Model_Description": "APPLE WATCH 11 46 RG AL LB SB ML GPS-USA",
+    "Model": "Apple Watch Series 11 (GPS) 46mm",
+    "Serial_Number": "DJTW9V293G",
+    "Estimated_Purchase_Date": "2025-12-10",
+    "Warranty_Status": "Limited Warranty",
+    "iCloud_Lock": "OFF",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Locked_Carrier": "N/A (Wi-Fi Device)",
+    "Sim-Lock_Status": "N/A"
+  },
+  "balance": 29.16,
+  "price": 0.05,
+  "order_id": "163414668",
+  "sheet_updated": true,
+  "total_registros": 73,
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM",
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 11,
+    "variant_id": 12,
+    "item_id": 11,
+    "product_number": "MEUX4LW/A",
+    "message": null
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": "APPLE WATCH",
+    "model": "SERIES 11 (GPS) 46MM 11 46 RG AL LB ML GPS",
+    "color": "SPACE BLACK",
+    "capacity": null,
+    "ram": null,
+    "country": "USA",
+    "full_model": "APPLE WATCH SERIES 11 (GPS) 46MM 11 46 RG AL LB ML GPS"
+  },
+  "product_price": 429.0,
+  "product_currency": "USD"
+}

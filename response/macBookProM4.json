@@ -1,0 +1,48 @@
+{
+  "success": true,
+  "data": {
+    "Model_Description": "MBP14 PRO/MAX SPB 12C/16C GPU/24GB/512GB",
+    "Model": "MacBook Pro (14-inch Nov 2024)",
+    "Serial_Number": "MRPW4JNYKQ",
+    "Estimated_Purchase_Date": "2025-09-27",
+    "Part_Number": "MX2H3LL/A",
+    "Part_Country": "USA/Canada",
+    "Part_Type": "Retail Unit",
+    "iCloud_Lock": "OFF",
+    "Warranty_Status": "Limited Warranty",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Locked_Carrier": "N/A (Wi-Fi Device)",
+    "Sim-Lock_Status": "N/A"
+  },
+  "balance": 29.51,
+  "price": 0.15,
+  "order_id": "163387181",
+  "sheet_updated": true,
+  "total_registros": 68,
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM",
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 7,
+    "variant_id": 8,
+    "item_id": 7,
+    "product_number": "MX2H3LL/A",
+    "message": null
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": "MACBOOK",
+    "model": "PRO (14-INCH NOV 2024) MBP14 PRO/MAX 12C/16C GPU//",
+    "color": "SPACE BLACK",
+    "capacity": "512GB",
+    "ram": "24GB",
+    "country": null,
+    "full_model": "MACBOOK PRO (14-INCH NOV 2024) MBP14 PRO/MAX 12C/16C GPU//"
+  },
+  "product_price": null,
+  "product_currency": null
+}

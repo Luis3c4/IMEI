@@ -1,0 +1,45 @@
+{
+  "success": true,
+  "data": {
+    "Model_Description": "APPLE WATCH 11 42 RG AL LB SB SM GPS-USA",
+    "Model": "Apple Watch Series 11 (GPS) 42mm",
+    "Serial_Number": "HHXH6Y2FWW",
+    "Estimated_Purchase_Date": "2026-01-14",
+    "Warranty_Status": "Limited Warranty",
+    "iCloud_Lock": "OFF",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Locked_Carrier": "N/A (Wi-Fi Device)",
+    "Sim-Lock_Status": "N/A"
+  },
+  "balance": 28.56,
+  "price": 0.05,
+  "order_id": "163510288",
+  "sheet_updated": true,
+  "total_registros": 81,
+  "sheet_url": "https://docs.google.com/spreadsheets/d/1e1P39zCbyfPD7jg_RbnEAzm_ZfOe7B5_VDVBQCZnjZM",
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 18,
+    "variant_id": 20,
+    "item_id": 19,
+    "product_number": "MEUX4LW/A",
+    "message": null
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": "APPLE WATCH",
+    "model": "SERIES 11 (GPS) 11 RG AL LB SM GPS",
+    "color": "SPACE BLACK",
+    "capacity": "42MM",
+    "ram": null,
+    "country": "USA",
+    "full_model": "APPLE WATCH SERIES 11 (GPS) 11 RG AL LB SM GPS"
+  },
+  "product_price": 399.0,
+  "product_currency": "USD"
+}
