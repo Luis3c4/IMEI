@@ -193,8 +193,11 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     # Magic Keyboard Series
     # ============================================================
 
-    'IPAD MAGIC KEYBOARD': {
-        'DEFAULT': 299.0,
+    'KEYBOARD IPAD MAGIC 13': {
+        'DEFAULT': 349.0,
+    },
+    'KEYBOARD MAGIC KEYBOARDS': {
+        'DEFAULT': 269.0,
     },
     
     # ============================================================

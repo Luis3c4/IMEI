@@ -70,17 +70,43 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     desc = model_desc.strip().upper()
     original_desc = desc  # Guardar copia para encontrar capacidades
     
-    # 1. MARCA: Detectar si empieza con IPHONE, APPLE TV, SAMSUNG, etc
-    brands = [
-        'APPLE TV', 'APPLE WATCH', 'IPHONE', 'IPAD', 'MACBOOK', 'AIRPODS','APPLE PENCIL'
-    ]
-    brands.sort(key=len, reverse=True)
+    # 0. ACCESORIOS: Detectar accesorios ANTES de marcas para evitar confusión
+    # Ejemplo: "IPAD MAGIC KEYBOARD 13 BLACK-USA" -> brand: KEYBOARD, model: MAGIC KEYBOARD 13
+    accessories = {
+        'MAGIC KEYBOARD': 'KEYBOARD',
+        'SMART KEYBOARD': 'KEYBOARD',
+        'KEYBOARD FOLIO': 'KEYBOARD',
+        'SMART FOLIO': 'FOLIO',
+        'MAGSAFE CHARGER': 'CHARGER',
+        'MAGSAFE BATTERY': 'BATTERY PACK',
+        'AIRTAG': 'AIRTAG',
+    }
     
-    for brand in brands:
-        if desc.startswith(brand):
-            result['brand'] = brand
-            desc = desc[len(brand):].strip()
+    detected_accessory = None
+    for accessory_pattern, accessory_brand in accessories.items():
+        if accessory_pattern in desc:
+            detected_accessory = accessory_brand
+            # Remover prefijo de producto (IPAD, APPLE, etc.) si existe al inicio
+            prefixes_to_remove = ['IPAD ', 'APPLE ', 'IPHONE ', 'MACBOOK ']
+            for prefix in prefixes_to_remove:
+                if desc.startswith(prefix):
+                    desc = desc[len(prefix):].strip()
+                    break
+            result['brand'] = detected_accessory
             break
+    
+    # 1. MARCA: Detectar si empieza con IPHONE, APPLE TV, SAMSUNG, etc (solo si no es accesorio)
+    if not detected_accessory:
+        brands = [
+            'APPLE TV', 'APPLE WATCH', 'IPHONE', 'IPAD', 'MACBOOK', 'AIRPODS','APPLE PENCIL'
+        ]
+        brands.sort(key=len, reverse=True)
+        
+        for brand in brands:
+            if desc.startswith(brand):
+                result['brand'] = brand
+                desc = desc[len(brand):].strip()
+                break
     
     # 2. MÚLTIPLES CAPACIDADES: Buscar TODAS las capacidades (GB/TB/MB)
     capacities = re.findall(r'\b(\d+(?:GB|TB|MB))\b', original_desc, re.IGNORECASE)
@@ -130,12 +156,12 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     # 4. COLOR: Buscar colores comunes Y SIGLAS DE COLORES (especialmente para MacBooks)
     # Mapeo de siglas a colores (principalmente para MacBooks)
     color_abbreviations = {
-        'SB': 'SPACE BLACK',
-        'MB': 'MIDNIGHT BLACK',
         'SG': 'SPACE GRAY',
+        'RG': 'ROSE GOLD',
+        'JB': 'JET BLACK',
+        'MB': 'MIDNIGHT BLACK',
         'SL': 'SILVER',
         'GD': 'GOLD',
-        'RG': 'ROSE GOLD',
         'BK': 'BLACK',
         'WH': 'WHITE',
         'MN': 'MIDNIGHT',
@@ -145,6 +171,7 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
         'SPB': 'SPACE BLACK',
         'NT': 'NATURAL',
         'SLVR': 'SILVER',
+        'SB': 'SPACE BLACK',
     }
     
     colors = [

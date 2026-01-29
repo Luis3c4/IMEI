@@ -1,0 +1,44 @@
+{
+  "success": true,
+  "data": {
+    "Model_Description": "IPAD MAGIC KEYBOARD 13 BLACK-USA",
+    "Serial_Number": "XM63QP1452",
+    "Estimated_Purchase_Date": "2025-06-29",
+    "Warranty_Status": "Limited Warranty",
+    "iCloud_Lock": "OFF",
+    "Demo_Unit": "No",
+    "Loaner_Device": "No",
+    "Replaced_Device": "No",
+    "Replacement_Device": "No",
+    "Refurbished_Device": "No",
+    "Locked_Carrier": "N/A (Wi-Fi Device)",
+    "Sim-Lock_Status": "N/A"
+  },
+  "balance": 23.06,
+  "price": 0.05,
+  "order_id": "163723197",
+  "sheet_updated": false,
+  "total_registros": null,
+  "sheet_url": null,
+  "sheet_error": null,
+  "supabase_saved": true,
+  "supabase_ids": {
+    "product_id": 15,
+    "variant_id": 29,
+    "item_id": 63,
+    "product_number": "MWR23LL/A",
+    "message": null
+  },
+  "supabase_error": null,
+  "parsed_model": {
+    "brand": "IPAD",
+    "model": "MAGIC KEYBOARD 13",
+    "color": "BLACK",
+    "capacity": null,
+    "ram": null,
+    "country": "USA",
+    "full_model": "IPAD MAGIC KEYBOARD 13"
+  },
+  "product_price": 299.0,
+  "product_currency": "USD"
+}
