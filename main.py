@@ -5,6 +5,7 @@ Main server configuration and startup
 
 import uvicorn
 import logging
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
@@ -19,6 +20,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Flag para evitar duplicación al recargar con reloader
+_routes_registered = False
 
 
 @asynccontextmanager
@@ -86,48 +90,60 @@ def create_app() -> FastAPI:
     )
     
     # ============ REGISTRAR RUTAS ============
-    print("\n📋 Registrando rutas...")
+    global _routes_registered
     
-    app.include_router(
-        health.router,
-        tags=["health"]
-    )
-    print("   ✓ Health routes registradas (/health)")
-    
-    app.include_router(
-        devices.router,
-        prefix="/api/devices",
-        tags=["devices"]
-    )
-    print("   ✓ Devices routes registradas (/api/devices/*)")
-    
-    app.include_router(
-        sheets.router,
-        prefix="/api/sheets",
-        tags=["sheets"]
-    )
-    print("   ✓ Sheets routes registradas (/api/sheets/*)")
-    
-    app.include_router(
-        invoice_routes.router,
-        prefix="/api/invoices",
-        tags=["invoices"]
-    )
-    print("   ✓ Invoice routes registradas (/api/invoices/*)")
-    
-    app.include_router(
-        products.router,
-        prefix="/api/products",
-        tags=["products"]
-    )
-    print("   ✓ Products routes registradas (/api/products/*)")
-    
-    app.include_router(
-        reniec.router,
-        prefix="/api/reniec",
-        tags=["reniec"]
-    )
-    print("   ✓ RENIEC routes registradas (/api/reniec/*)")
+    if not _routes_registered:
+        _routes_registered = True
+        print("\n📋 Registrando rutas...")
+        
+        app.include_router(
+            health.router,
+            tags=["health"]
+        )
+        print("   ✓ Health routes registradas (/health)")
+        
+        app.include_router(
+            devices.router,
+            prefix="/api/devices",
+            tags=["devices"]
+        )
+        print("   ✓ Devices routes registradas (/api/devices/*)")
+        
+        app.include_router(
+            sheets.router,
+            prefix="/api/sheets",
+            tags=["sheets"]
+        )
+        print("   ✓ Sheets routes registradas (/api/sheets/*)")
+        
+        app.include_router(
+            invoice_routes.router,
+            prefix="/api/invoices",
+            tags=["invoices"]
+        )
+        print("   ✓ Invoice routes registradas (/api/invoices/*)")
+        
+        app.include_router(
+            products.router,
+            prefix="/api/products",
+            tags=["products"]
+        )
+        print("   ✓ Products routes registradas (/api/products/*)")
+        
+        app.include_router(
+            reniec.router,
+            prefix="/api/reniec",
+            tags=["reniec"]
+        )
+        print("   ✓ RENIEC routes registradas (/api/reniec/*)")
+    else:
+        # Solo registrar sin imprimir en recarga
+        app.include_router(health.router, tags=["health"])
+        app.include_router(devices.router, prefix="/api/devices", tags=["devices"])
+        app.include_router(sheets.router, prefix="/api/sheets", tags=["sheets"])
+        app.include_router(invoice_routes.router, prefix="/api/invoices", tags=["invoices"])
+        app.include_router(products.router, prefix="/api/products", tags=["products"])
+        app.include_router(reniec.router, prefix="/api/reniec", tags=["reniec"])
     
     # ============ ROOT ENDPOINT ============
     @app.get("/", tags=["root"])

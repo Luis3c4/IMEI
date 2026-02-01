@@ -1,12 +1,17 @@
 import os
+from pathlib import Path
 from typing import Optional
 from pydantic_settings import BaseSettings
 
+# Cargar .env.local si existe (desarrollo), sino cargar .env
+env_file = Path(__file__).parent.parent.parent / '.env.local'
+if not env_file.exists():
+    env_file = Path(__file__).parent.parent.parent / '.env'
 
 class Settings(BaseSettings):
     """
     Configuración de la aplicación FastAPI
-    Las variables se cargan desde .env o variables de entorno
+    Las variables se cargan desde .env o .env.local según el entorno
     """
     
     # ============ DHRU API ============
