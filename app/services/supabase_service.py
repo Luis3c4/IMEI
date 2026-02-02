@@ -329,21 +329,29 @@ class SupabaseService:
             
             if variant_response.data and len(variant_response.data) > 0:
                 variant_data_item = variant_response.data[0]
+                assert isinstance(variant_data_item, dict)
                 variant_id = variant_data_item['id']  # type: ignore
                 color_display = color if color else 'NULL'
                 capacity_display = capacity_combined if capacity_combined else 'NULL'
                 logger.info(f"✅ Variante existente: {color_display} {capacity_display} (ID: {variant_id})")
+                
+                # Actualizar model_description si es necesario
+                model_description = device_info.get('Model_Description')
+                if model_description and model_description != variant_data_item.get('model_description'):
+                    self.client.table('product_variants').update({
+                        'model_description': model_description
+                    }).eq('id', variant_id).execute()
+                    logger.info(f"✅ Model description actualizado para variante {variant_id}")
             else:
                 # Crear nueva variante con precio del producto o precio de consulta
                 # Prioridad: product_price > price (consulta DHRU)
                 product_price = metadata.get('product_price') or metadata.get('price', 0.0)
-                model_description = device_info.get('Model_Description')
                 variant_data = {
                     'product_id': product_id,
                     'color': color,
                     'capacity': capacity_combined,
                     'price': product_price,
-                    'model_description': model_description
+                    'model_description': device_info.get('Model_Description')
                 }
                 new_variant = self.client.table('product_variants').insert(variant_data).execute()
                 if new_variant.data and len(new_variant.data) > 0:
@@ -387,16 +395,14 @@ class SupabaseService:
                 item_data_existing = existing_item.data[0]
                 item_id = item_data_existing['id']  # type: ignore
                 
-                # Actualizar product_number en item si es necesario
+                # Actualizar product_number si es necesario
+                update_data = {}
                 if product_number:
-                    self.client.table('product_items').update({'product_number': product_number}).eq('id', item_id).execute()
-                    logger.info(f"✅ Product number actualizado para item {item_id}")
+                    update_data['product_number'] = product_number
                 
-                # Actualizar model_description en variant si es necesario
-                model_description = device_info.get('Model_Description')
-                if model_description:
-                    self.client.table('product_variants').update({'model_description': model_description}).eq('id', variant_id).execute()
-                    logger.info(f"✅ Model description actualizado para variant {variant_id}")
+                if update_data:
+                    self.client.table('product_items').update(update_data).eq('id', item_id).execute()
+                    logger.info(f"✅ Datos actualizados para item {item_id}: {', '.join(update_data.keys())}")
             else:
                 item_data = {
                     'variant_id': variant_id,
