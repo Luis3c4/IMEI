@@ -5,10 +5,11 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Optional
 from io import BytesIO
 
 from app.services.invoice_pdf_service import InvoicePDFService
+from app.services.supabase_service import supabase_service
 
 router = APIRouter()
 
@@ -26,9 +27,10 @@ class LocationModel(BaseModel):
 
 
 class CustomerModel(BaseModel):
-    """Modelo para información del cliente"""
+    """Modelo para información del cliente (customer_number se genera automáticamente)"""
     name: str = Field(..., examples=["Geraldine Eva Flores Flores"])
-    customer_number: str = Field(..., examples=["900007"])
+    dni: str = Field(..., examples=["12345678"], description="DNI del cliente (requerido - identificador único)")
+    phone: Optional[str] = Field(None, examples=["+51 999 888 777"])
 
 
 class ProductModel(BaseModel):
@@ -108,12 +110,12 @@ async def generar_factura_dinamica(request: InvoiceRequest):
     
     - **order_date**: Fecha de la orden
     - **order_number**: Número de orden
-    - **customer**: Información del cliente
+    - **customer**: Información del cliente (customer_number se genera automáticamente si no se proporciona)
     - **products**: Lista de productos (mínimo 1)
     - **invoice_info**: Información adicional
     
     Returns:
-        PDF file: Factura personalizada descargable
+        PDF file: Factura personalizada descargable con información del cliente persistida
     """
     try:
         # Validar que hay al menos un producto
@@ -123,8 +125,29 @@ async def generar_factura_dinamica(request: InvoiceRequest):
                 detail="Debe incluir al menos un producto"
             )
         
-        # Convertir modelos a diccionarios
-        customer_dict = request.customer.model_dump()
+        # Obtener o crear cliente en la BD
+        customer_result = supabase_service.get_or_create_customer(
+            name=request.customer.name,
+            dni=request.customer.dni,
+            phone=request.customer.phone
+        )
+        
+        if not customer_result['success']:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al gestionar cliente: {customer_result.get('error', 'Error desconocido')}"
+            )
+        
+        # Usar el customer_number de la BD (autogenerado o existente)
+        customer_data = customer_result['data']
+        customer_dict = {
+            'name': customer_data['name'],
+            'customer_number': customer_data['customer_number'],
+            'dni': customer_data.get('dni', ''),
+            'phone': customer_data.get('phone', '')
+        }
+        
+        # Convertir productos a diccionarios
         products_list = [p.model_dump() for p in request.products]
         invoice_info_dict = request.invoice_info.model_dump()
         
@@ -147,7 +170,8 @@ async def generar_factura_dinamica(request: InvoiceRequest):
             pdf_stream,
             media_type="application/pdf",
             headers={
-                "Content-Disposition": f"attachment; filename={filename}"
+                "Content-Disposition": f"attachment; filename={filename}",
+                "X-Customer-Number": customer_data['customer_number']  # Header con el customer_number generado
             }
         )
         
@@ -157,49 +181,4 @@ async def generar_factura_dinamica(request: InvoiceRequest):
         raise HTTPException(
             status_code=500,
             detail=f"Error generando factura: {str(e)}"
-        )
-
-
-@router.post("/preview")
-async def preview_factura(request: InvoiceRequest):
-    """
-    Genera preview de la factura (mismo PDF pero con nombre diferente)
-    Útil para mostrar en el navegador sin descargar
-    """
-    try:
-        if not request.products:
-            raise HTTPException(
-                status_code=400,
-                detail="Debe incluir al menos un producto"
-            )
-        
-        customer_dict = request.customer.model_dump()
-        products_list = [p.model_dump() for p in request.products]
-        invoice_info_dict = request.invoice_info.model_dump()
-        
-        pdf_bytes = invoice_service.generar_factura_dinamica(
-            order_date=request.order_date,
-            order_number=request.order_number,
-            customer=customer_dict,
-            products=products_list,
-            invoice_info=invoice_info_dict
-        )
-        
-        pdf_stream = BytesIO(pdf_bytes)
-        
-        # Para preview, usar inline en lugar de attachment
-        return StreamingResponse(
-            pdf_stream,
-            media_type="application/pdf",
-            headers={
-                "Content-Disposition": "inline"
-            }
-        )
-        
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error generando preview: {str(e)}"
         )
