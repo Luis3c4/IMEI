@@ -161,10 +161,20 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         '2TB': 2299.0,
     },
     
-    # iPad Air M2
-    'IPAD AIR': {
-        '64GB': 549.0,
+    # iPad Air M3 11-inch
+    'IPAD AIR 11-INCH': {
+        '128GB': 599.0,
         '256GB': 699.0,
+        '512GB': 899.0,
+        '1TB': 1099.0,
+    },
+
+    # iPad Air M3 11-inch
+    'IPAD AIR 13-INCH': {
+        '128GB': 799.0,
+        '256GB': 899.0,
+        '512GB': 1099.0,
+        '1TB': 1299.0,
     },
     
     # iPad Base (10ª Gen)
