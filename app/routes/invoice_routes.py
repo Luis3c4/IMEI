@@ -30,7 +30,7 @@ class CustomerModel(BaseModel):
     """Modelo para información del cliente (customer_number se genera automáticamente)"""
     name: str = Field(..., examples=["Geraldine Eva Flores Flores"])
     dni: str = Field(..., examples=["12345678"], description="DNI del cliente (requerido - identificador único)")
-    phone: Optional[str] = Field(None, examples=["+51 999 888 777"])
+    phone: str = Field(..., examples=["+51 999 888 777"])
 
 
 class ProductModel(BaseModel):
@@ -126,7 +126,7 @@ async def generar_factura_dinamica(request: InvoiceRequest):
             )
         
         # Obtener o crear cliente en la BD
-        customer_result = supabase_service.get_or_create_customer(
+        customer_result = supabase_service.customers.get_or_create_customer(
             name=request.customer.name,
             dni=request.customer.dni,
             phone=request.customer.phone

@@ -63,7 +63,7 @@ async def get_all_products():
             detail="Servicio de base de datos no disponible"
         )
     
-    result = supabase_service.get_products_with_variants()
+    result = supabase_service.products.get_products_with_variants()
     
     if not result.get('success'):
         raise HTTPException(
@@ -120,8 +120,8 @@ async def bulk_toggle_items_sold(request: BulkToggleRequest):
     for item_id in request.item_ids:
         try:
             # Obtener el status actual
-            assert supabase_service.client is not None
-            result = supabase_service.client.table('product_items').select(
+            assert supabase_service.products.client is not None
+            result = supabase_service.products.client.table('product_items').select(
                 'id, status, serial_number'
             ).eq('id', item_id).execute()
             
@@ -149,7 +149,7 @@ async def bulk_toggle_items_sold(request: BulkToggleRequest):
             new_status = 'sold' if current_status == 'available' else 'available'
             
             # Actualizar status
-            update_result = supabase_service.update_product_item_status(item_id, new_status)
+            update_result = supabase_service.products.update_product_item_status(item_id, new_status)
             
             if update_result.get('success'):
                 results.append({

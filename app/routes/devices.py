@@ -144,7 +144,7 @@ async def query_device(request: QueryDeviceRequest):
             product_number = user_product_number or result['data'].get('Part_Number')
             
             # Guardar en Supabase
-            supabase_result = supabase_service.save_device_query(
+            supabase_result = supabase_service.products.save_device_query(
                 device_info=result['data'],
                 metadata={
                     'input_value': request.input_value,

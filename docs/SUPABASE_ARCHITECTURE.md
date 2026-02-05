@@ -2,7 +2,7 @@
 
 ## 📋 Resumen
 
-El servicio de Supabase ha sido refactorizado de un servicio monolítico (638 líneas) a una arquitectura modular basada en **Repository Pattern** con **Facade Híbrido**. Esta nueva estructura mejora la mantenibilidad, testabilidad y escalabilidad del código.
+El servicio de Supabase ha sido refactorizado de un servicio monolítico (638 líneas) a una arquitectura modular basada en **Repository Pattern** con **Facade limpio**. Esta nueva estructura mejora la mantenibilidad, testabilidad y escalabilidad del código.
 
 ---
 
@@ -16,7 +16,7 @@ app/services/
 │   ├── device_repository.py          # Gestión de devices + consulta_history
 │   ├── product_repository.py         # Gestión de products + variants + items
 │   └── customer_repository.py        # Gestión de customers
-└── supabase_service.py                # Facade híbrido (retrocompatibilidad)
+└── supabase_service.py                # Facade limpio (70 líneas)
 ```
 
 ---
@@ -55,28 +55,24 @@ Cada repositorio gestiona una entidad del dominio:
 
 ---
 
-### 3. **Facade Híbrido**
+### 3. **Facade Limpio**
 
-El `SupabaseService` actúa como **puente** entre el código legacy y la nueva arquitectura:
+El `SupabaseService` actúa como **punto de acceso único** a los repositorios:
 
 ```python
 class SupabaseService:
     def __init__(self):
-        # Repositorios públicos (uso moderno)
+        # Repositorios públicos
         self.devices = DeviceRepository()
         self.products = ProductRepository()
         self.customers = CustomerRepository()
-    
-    # Métodos legacy para retrocompatibilidad
-    def save_device_query(self, ...):
-        return self.products.save_device_query(...)  # Delega
 ```
 
 ---
 
 ## 📖 Guía de Uso
 
-### Opción 1: **Uso Moderno** (Recomendado)
+### Uso Estándar
 
 Acceso directo a través de los repositorios del facade:
 
@@ -110,27 +106,7 @@ device = supabase_service.devices.get_device(imei="123456789012345")
 
 ---
 
-### Opción 2: **Uso Legacy** (Retrocompatibilidad)
-
-Métodos directos del facade (deprecados con warnings):
-
-```python
-from app.services.supabase_service import supabase_service
-
-# Funciona, pero genera DeprecationWarning
-result = supabase_service.save_device_query(...)
-customer = supabase_service.get_or_create_customer(...)
-```
-
-**⚠️  Warnings emitidos:**
-```
-DeprecationWarning: save_device_query() está deprecado. 
-Usa supabase_service.products.save_device_query()
-```
-
----
-
-### Opción 3: **Uso Directo de Repositorios** (Avanzado)
+### Uso Directo de Repositorios (Avanzado)
 
 Instanciar repositorios independientemente:
 
@@ -148,30 +124,6 @@ customer = customer_repo.create_customer(...)
 - ✅ Máxima flexibilidad
 - ✅ Ideal para testing unitario
 - ✅ Sin dependencia del facade
-
----
-
-## 🚀 Migración Gradual
-
-### Plan de Migración Recomendado
-
-#### **Fase 1: Sin Cambios (Actual)**
-- ✅ Código legacy funciona sin modificaciones
-- ✅ Warnings visibles en desarrollo para identificar uso deprecado
-
-#### **Fase 2: Migración Progresiva** (Opcional)
-Actualizar rutas a uso moderno:
-
-```python
-# ANTES (devices.py)
-supabase_result = supabase_service.save_device_query(...)
-
-# DESPUÉS
-supabase_result = supabase_service.products.save_device_query(...)
-```
-
-#### **Fase 3: Eliminación de Legacy** (Futuro)
-Cuando todo el código use la nueva sintaxis, eliminar métodos legacy.
 
 ---
 
@@ -325,17 +277,19 @@ Si en el futuro se necesita, agregar métodos específicos en cada repositorio.
 
 | Archivo | Antes | Después | Cambio |
 |---------|-------|---------|--------|
-| `supabase_service.py` | 638 | 220 | -65% |
+| `supabase_service.py` | 638 | 70 | -89% |
 | `base.py` | - | 90 | +90 |
 | `device_repository.py` | - | 180 | +180 |
 | `product_repository.py` | - | 310 | +310 |
 | `customer_repository.py` | - | 190 | +190 |
-| **TOTAL** | **638** | **990** | +55% |
+| **TOTAL** | **638** | **840** | +32% |
 
-**Nota:** Aunque el total de líneas aumentó, cada archivo es más:
-- ✅ Pequeño y enfocado (180-310 líneas vs 638)
-- ✅ Fácil de entender y navegar
+**Beneficios de la modularización:**
+- ✅ **Facade limpio:** 70 líneas vs 638 (89% reducción)
+- ✅ Cada repositorio enfocado: 90-310 líneas
+- ✅ Fácil navegación y mantenimiento
 - ✅ Testeable de forma independiente
+- ✅ Sin código legacy deprecado
 
 ---
 
@@ -383,20 +337,6 @@ result = supabase_service.devices.get_device(imei)
 
 ---
 
-### Problema: DeprecationWarning en logs
-
-**Causa:** Uso de métodos legacy  
-**Solución:** Migrar a uso moderno:
-```python
-# ❌ Legacy (genera warning)
-result = supabase_service.save_device_query(...)
-
-# ✅ Moderno
-result = supabase_service.products.save_device_query(...)
-```
-
----
-
 ### Problema: "Cliente de Supabase no inicializado"
 
 **Causa:** Credenciales `SUPABASE_URL` o `SUPABASE_KEY` no configuradas  
@@ -417,20 +357,6 @@ SUPABASE_KEY=tu-clave-anon-key
 
 ---
 
-## ✅ Checklist de Migración
-
-Cuando migres código a la nueva arquitectura:
-
-- [ ] Cambiar `supabase_service.save_device_query()` → `supabase_service.products.save_device_query()`
-- [ ] Cambiar `supabase_service.get_or_create_customer()` → `supabase_service.customers.get_or_create_customer()`
-- [ ] Cambiar `supabase_service.get_products_with_variants()` → `supabase_service.products.get_products_with_variants()`
-- [ ] Cambiar `supabase_service.update_product_item_status()` → `supabase_service.products.update_product_item_status()`
-- [ ] Cambiar `supabase_service.insert_device()` → `supabase_service.devices.insert_device()`
-- [ ] Verificar que no hay DeprecationWarnings en logs
-- [ ] Probar endpoints en Bruno/Postman
-- [ ] Actualizar documentación de API si es necesario
-
----
-
-**Última actualización:** Febrero 4, 2026  
-**Versión:** 1.0.0
+**Última actualización:** Febrero 5, 2026  
+**Versión:** 2.0.0  
+**Estado:** ✅ Migración completa - Sin código legacy
