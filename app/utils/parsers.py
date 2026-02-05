@@ -193,6 +193,7 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
         'DB': 'DEEP BLUE',
         'SPB': 'SPACE BLACK',
         'NT': 'NATURAL',
+        'SLV': 'SILVER',
         'SLVR': 'SILVER',
         'SB': 'SPACE BLACK',
     }
