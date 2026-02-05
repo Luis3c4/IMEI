@@ -2,6 +2,29 @@ import re
 from typing import Any, Dict, Optional
 
 
+def clean_apple_watch_model(name: Optional[str]) -> Optional[str]:
+    """
+    Elimina tamaños de Apple Watch (41/42/44/45/46/49MM) del nombre para guardar limpio.
+    
+    Args:
+        name: Nombre del modelo que puede contener tamaños MM
+        
+    Returns:
+        Nombre limpio sin tamaños MM o None si el input es None/inválido
+        
+    Examples:
+        >>> clean_apple_watch_model("APPLE WATCH SERIES 11 49MM GPS")
+        "APPLE WATCH SERIES 11 GPS"
+        >>> clean_apple_watch_model("APPLE WATCH ULTRA 2 49MM")
+        "APPLE WATCH ULTRA 2"
+    """
+    if not name or not isinstance(name, str):
+        return name
+    cleaned = re.sub(r'\b(41|42|44|45|46|49)\s*MM\b', '', name, flags=re.IGNORECASE)
+    cleaned = re.sub(r'\s+', ' ', cleaned).strip()
+    return cleaned or name.strip()
+
+
 def normalize_keys(obj: Any) -> Any:
     """
     Normaliza recursivamente las claves de diccionarios reemplazando espacios con guiones bajos
