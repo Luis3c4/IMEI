@@ -14,14 +14,14 @@ class CustomerRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con clientes"""
     
     def create_customer(self, name: str, dni: str, 
-                       phone:str) -> Dict[str, Any]:
+                       phone: Optional[str] = None) -> Dict[str, Any]:
         """
         Crea un nuevo cliente en la base de datos.
         
         Args:
             name: Nombre completo del cliente (requerido)
             dni: DNI del cliente (requerido - identificador único)
-            phone: Teléfono del cliente (requerido)
+            phone: Teléfono del cliente (opcional)
             
         Returns:
             Dict con success, data o error
@@ -32,9 +32,12 @@ class CustomerRepository(BaseSupabaseRepository):
         try:
             customer_data = {
                 'name': name.strip(),
-                'dni': dni.strip(),
-                'phone': phone.strip()
+                'dni': dni.strip()
             }
+            
+            # Solo agregar phone si no es None y no está vacío
+            if phone and phone.strip():
+                customer_data['phone'] = phone.strip()
             
             response = self.client.table('customers').insert(customer_data).execute()
             
@@ -86,15 +89,15 @@ class CustomerRepository(BaseSupabaseRepository):
     #     pass
 
     def get_or_create_customer(self, name: str, dni: str,
-                               phone:str) -> Dict[str, Any]:
+                               phone: Optional[str] = None) -> Dict[str, Any]:
         """
         Busca un cliente existente por DNI, o crea uno nuevo si no existe.
-        Si el cliente existe pero no tiene teléfono, lo actualiza.
+        Si el cliente existe pero no tiene teléfono y se proporciona uno, lo actualiza.
         
         Args:
             name: Nombre completo del cliente
             dni: DNI del cliente (requerido - identificador único)
-            phone: Teléfono (requerido - debe ser un string no vacío)
+            phone: Teléfono (opcional)
             
         Returns:
             Dict con success, data (cliente existente o nuevo), is_new (bool)
@@ -166,7 +169,7 @@ class CustomerRepository(BaseSupabaseRepository):
         
         try:
             response = self.client.table('customers').select(
-                'dni, first_name, first_last_name, second_last_name, name'
+                'dni, first_name, first_last_name, second_last_name, name, phone'
             ).eq('dni', dni.strip()).execute()
             
             if not response.data:
@@ -185,7 +188,8 @@ class CustomerRepository(BaseSupabaseRepository):
                 'first_last_name': customer.get('first_last_name', ''),
                 'second_last_name': customer.get('second_last_name', ''),
                 'full_name': customer.get('name', ''),
-                'document_number': customer.get('dni', '')
+                'document_number': customer.get('dni', ''),
+                'phone': customer.get('phone', '') or None  # None si vacío
             }
             
             logger.info(f"✅ Datos de RENIEC encontrados en BD para DNI: {dni}")

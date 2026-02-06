@@ -87,6 +87,7 @@ async def consultar_dni(
             second_last_name=data['second_last_name'],
             full_name=data['full_name'],
             document_number=data['document_number'],
+            phone=data.get('phone'),  # Incluir phone (puede ser None)
             source=source
         )
         

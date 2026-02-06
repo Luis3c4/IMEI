@@ -207,6 +207,10 @@ class ReniecDNIResponse(BaseModel):
     second_last_name: str = Field(..., description="Apellido materno")
     full_name: str = Field(..., description="Nombre completo")
     document_number: str = Field(..., description="Número de DNI")
+    phone: Optional[str] = Field(
+        default=None,
+        description="Teléfono del cliente (solo si existe en BD)"
+    )
     source: Optional[str] = Field(
         default=None, 
         description="Fuente de los datos: 'database' (BD local) o 'api' (API externa)"
@@ -221,6 +225,7 @@ class ReniecDNIResponse(BaseModel):
                     "second_last_name": "CUELLAR",
                     "full_name": "DELGADO CUELLAR ROXANA KARINA",
                     "document_number": "46027896",
+                    "phone": "999 888 777",
                     "source": "database"
                 }
             ]
