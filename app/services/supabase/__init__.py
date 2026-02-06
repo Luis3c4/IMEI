@@ -16,10 +16,12 @@ from .base import BaseSupabaseRepository
 from .device_repository import DeviceRepository
 from .product_repository import ProductRepository
 from .customer_repository import CustomerRepository
+from .invoice_repository import InvoiceRepository
 
 __all__ = [
     'BaseSupabaseRepository',
     'DeviceRepository',
     'ProductRepository',
     'CustomerRepository',
+    'InvoiceRepository',
 ]

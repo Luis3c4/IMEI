@@ -25,7 +25,8 @@ from typing import Dict, Any, Optional
 from .supabase import (
     DeviceRepository,
     ProductRepository,
-    CustomerRepository
+    CustomerRepository,
+    InvoiceRepository
 )
 
 logger = logging.getLogger(__name__)
@@ -38,6 +39,7 @@ class SupabaseService:
     - devices: DeviceRepository
     - products: ProductRepository  
     - customers: CustomerRepository
+    - invoices: InvoiceRepository
     """
     
     def __init__(self):
@@ -49,6 +51,7 @@ class SupabaseService:
         self.devices = DeviceRepository()
         self.products = ProductRepository()
         self.customers = CustomerRepository()
+        self.invoices = InvoiceRepository()
         
         logger.info("✅ SupabaseService inicializado con repositorios modulares")
     

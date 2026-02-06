@@ -17,7 +17,6 @@ class CustomerRepository(BaseSupabaseRepository):
                        phone:str) -> Dict[str, Any]:
         """
         Crea un nuevo cliente en la base de datos.
-        El customer_number se genera automáticamente en la BD.
         
         Args:
             name: Nombre completo del cliente (requerido)
@@ -25,7 +24,7 @@ class CustomerRepository(BaseSupabaseRepository):
             phone: Teléfono del cliente (requerido)
             
         Returns:
-            Dict con success, data (incluyendo customer_number generado) o error
+            Dict con success, data o error
         """
         if not self.client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
@@ -44,7 +43,7 @@ class CustomerRepository(BaseSupabaseRepository):
             
             customer = response.data[0]  # type: ignore
             assert isinstance(customer, dict)
-            logger.info(f"✅ Cliente creado: {customer['name']} (#{customer['customer_number']})")
+            logger.info(f"✅ Cliente creado: {customer['name']} (DNI: {customer['dni']})")
             return {'success': True, 'data': customer}
             
         except Exception as e:
@@ -78,32 +77,13 @@ class CustomerRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error buscando cliente por DNI: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_customer_by_number(self, customer_number: str) -> Dict[str, Any]:
-        """
-        Busca clientes por customer_number (puede haber duplicados).
-        
-        Args:
-            customer_number: Número de cliente (ej: "90000001")
-            
-        Returns:
-            Dict con success, data (lista de clientes) o error
-        """
-        if not self.client:
-            return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
-        
-        try:
-            response = self.client.table('customers').select('*').eq(
-                'customer_number', customer_number
-            ).execute()
-            
-            if not response.data:
-                return {'success': False, 'error': f'Cliente {customer_number} no encontrado'}
-            
-            return {'success': True, 'data': response.data}
-            
-        except Exception as e:
-            logger.error(f"❌ Error buscando cliente por número: {str(e)}")
-            return {'success': False, 'error': str(e)}
+    # DEPRECATED: customer_number se movió a la tabla invoices
+    # def get_customer_by_number(self, customer_number: str) -> Dict[str, Any]:
+    #     """
+    #     DEPRECADO: customer_number ahora está en la tabla invoices.
+    #     Use InvoiceRepository.get_invoices_by_customer_number() en su lugar.
+    #     """
+    #     pass
 
     def get_or_create_customer(self, name: str, dni: str,
                                phone:str) -> Dict[str, Any]:
@@ -126,7 +106,7 @@ class CustomerRepository(BaseSupabaseRepository):
             dni_search = self.get_customer_by_dni(dni)
             
             if dni_search['success']:
-                logger.info(f"✅ Cliente encontrado por DNI: {dni_search['data']['customer_number']}")
+                logger.info(f"✅ Cliente encontrado por DNI: {dni}")
                 return {
                     'success': True, 
                     'data': dni_search['data'],
@@ -136,7 +116,7 @@ class CustomerRepository(BaseSupabaseRepository):
             # Cliente no existe, crear uno nuevo
             create_result = self.create_customer(name, dni, phone)
             if create_result['success']:
-                logger.info(f"✅ Nuevo cliente creado: {create_result['data']['customer_number']}")
+                logger.info(f"✅ Nuevo cliente creado con DNI: {dni}")
                 return {
                     'success': True,
                     'data': create_result['data'],
