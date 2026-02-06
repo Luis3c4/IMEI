@@ -4,7 +4,7 @@ Maneja la tabla: customers
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from .base import BaseSupabaseRepository
 
 logger = logging.getLogger(__name__)
@@ -89,6 +89,7 @@ class CustomerRepository(BaseSupabaseRepository):
                                phone:str) -> Dict[str, Any]:
         """
         Busca un cliente existente por DNI, o crea uno nuevo si no existe.
+        Si el cliente existe pero no tiene teléfono, lo actualiza.
         
         Args:
             name: Nombre completo del cliente
@@ -106,10 +107,30 @@ class CustomerRepository(BaseSupabaseRepository):
             dni_search = self.get_customer_by_dni(dni)
             
             if dni_search['success']:
+                existing_customer = dni_search['data']
+                
+                # Verificar si necesita actualización del teléfono
+                needs_phone_update = (
+                    not existing_customer.get('phone') or  # phone es NULL o vacío
+                    existing_customer.get('phone', '').strip() == ''  # phone es string vacío
+                )
+                
+                if needs_phone_update and phone and phone.strip():
+                    # Actualizar el teléfono del cliente existente
+                    logger.info(f"🔄 Actualizando teléfono para DNI: {dni}")
+                    update_result = self.client.table('customers').update(
+                        {'phone': phone.strip()}
+                    ).eq('dni', dni.strip()).execute()
+                    
+                    if update_result.data:
+                        existing_customer = update_result.data[0]  # type: ignore
+                        assert isinstance(existing_customer, dict)
+                        logger.info(f"✅ Teléfono actualizado para DNI: {dni}")
+                
                 logger.info(f"✅ Cliente encontrado por DNI: {dni}")
                 return {
                     'success': True, 
-                    'data': dni_search['data'],
+                    'data': existing_customer,
                     'is_new': False
                 }
             
@@ -128,3 +149,94 @@ class CustomerRepository(BaseSupabaseRepository):
         except Exception as e:
             logger.error(f"❌ Error en get_or_create_customer: {str(e)}")
             return {'success': False, 'error': str(e)}
+    
+    def get_customer_reniec_data(self, dni: str) -> Dict[str, Any]:
+        """
+        Obtiene los datos de RENIEC de un cliente si existen en la BD.
+        Los datos de RENIEC son estáticos y no requieren validación de vigencia.
+        
+        Args:
+            dni: DNI del cliente
+            
+        Returns:
+            Dict con success, data (datos de RENIEC) o error
+        """
+        if not self.client:
+            return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
+        
+        try:
+            response = self.client.table('customers').select(
+                'dni, first_name, first_last_name, second_last_name, name'
+            ).eq('dni', dni.strip()).execute()
+            
+            if not response.data:
+                return {'success': False, 'error': 'Cliente no encontrado'}
+            
+            customer = response.data[0]  # type: ignore
+            assert isinstance(customer, dict)
+            
+            # Verificar si tiene datos de RENIEC
+            if not customer.get('first_name'):
+                return {'success': False, 'error': 'Sin datos de RENIEC'}
+            
+            # Construir respuesta con formato de RENIEC desde las columnas
+            reniec_response = {
+                'first_name': customer.get('first_name', ''),
+                'first_last_name': customer.get('first_last_name', ''),
+                'second_last_name': customer.get('second_last_name', ''),
+                'full_name': customer.get('name', ''),
+                'document_number': customer.get('dni', '')
+            }
+            
+            logger.info(f"✅ Datos de RENIEC encontrados en BD para DNI: {dni}")
+            return {'success': True, 'data': reniec_response}
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo datos de RENIEC del cliente: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    def update_customer_reniec_data(self, dni: str, reniec_data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Actualiza los datos de RENIEC de un cliente existente o crea uno nuevo.
+        
+        Args:
+            dni: DNI del cliente
+            reniec_data: Datos completos de la respuesta de RENIEC
+            
+        Returns:
+            Dict con success, data o error
+        """
+        if not self.client:
+            return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
+        
+        try:
+            customer_update = {
+                'dni': dni.strip(),
+                'name': reniec_data.get('full_name', ''),
+                'first_name': reniec_data.get('first_name', ''),
+                'first_last_name': reniec_data.get('first_last_name', ''),
+                'second_last_name': reniec_data.get('second_last_name', '')
+            }
+            
+            # Intentar actualizar primero
+            response = self.client.table('customers').update(
+                customer_update
+            ).eq('dni', dni.strip()).execute()
+            
+            # Si no hay datos, insertar (upsert)
+            if not response.data:
+                # No existe, crear nuevo sin phone (será NULL)
+                response = self.client.table('customers').insert(customer_update).execute()
+            
+            if not response.data:
+                return {'success': False, 'error': 'No se pudo actualizar/crear el cliente'}
+            
+            customer = response.data[0]  # type: ignore
+            assert isinstance(customer, dict)
+            logger.info(f"✅ Datos de RENIEC actualizados para DNI: {dni}")
+            return {'success': True, 'data': customer}
+            
+        except Exception as e:
+            logger.error(f"❌ Error actualizando datos de RENIEC: {str(e)}")
+            return {'success': False, 'error': str(e)}
+

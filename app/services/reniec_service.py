@@ -1,12 +1,14 @@
 """
 Servicio para interactuar con la API de RENIEC
 Permite consultar información de personas por DNI
+Implementa cache local en BD para reducir llamadas externas
 """
 
 from typing import Dict, Any
 import httpx
 import logging
 from app.config import settings
+from app.services.supabase_service import supabase_service
 
 # Configurar logging
 logger = logging.getLogger(__name__)
@@ -29,15 +31,32 @@ class ReniecService:
     
     async def consultar_dni(self, numero: str) -> Dict[str, Any]:
         """
-        Consulta información de una persona por DNI
+        Consulta información de una persona por DNI.
+        Primero verifica en la base de datos local.
+        Si no existe, consulta la API externa.
         
         Args:
             numero: Número de DNI (8 dígitos)
-            
+        
         Returns:
             Dict con la información de la persona o error
         """
         try:
+            # 1. Intentar obtener datos de la BD primero
+            logger.info(f"🔍 Verificando DNI {numero} en base de datos local...")
+            db_result = supabase_service.customers.get_customer_reniec_data(numero)
+            
+            if db_result['success']:
+                logger.info(f"✅ Datos encontrados en BD para DNI: {numero}")
+                return {
+                    'success': True,
+                    'data': db_result['data'],
+                    'source': 'database'  # Indicador de que vino de BD
+                }
+            
+            # 2. Si no hay datos en BD, consultar API externa
+            logger.info(f"🌐 Consultando API externa de RENIEC para DNI: {numero}")
+            
             # Validar que el token esté configurado
             if not self.api_token:
                 logger.error("RENIEC_API_TOKEN no está configurado")
@@ -49,9 +68,8 @@ class ReniecService:
             # Construir URL
             url = f"{self.base_url}/dni"
             
-            # Realizar petición
+            # Realizar petición a API externa
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                logger.info(f"Consultando DNI: {numero}")
                 response = await client.get(
                     url,
                     params={'numero': numero},
@@ -72,10 +90,20 @@ class ReniecService:
                     if 'full_name' in data and data['full_name']:
                         data['full_name'] = data['full_name'].title()
                     
-                    logger.info(f"Consulta exitosa para DNI: {numero}")
+                    # 3. Guardar datos en BD para futuras consultas
+                    logger.info(f"💾 Guardando datos de RENIEC en BD para DNI: {numero}")
+                    save_result = supabase_service.customers.update_customer_reniec_data(
+                        numero, data
+                    )
+                    
+                    if not save_result['success']:
+                        logger.warning(f"⚠️ No se pudo guardar datos de RENIEC en BD: {save_result.get('error')}")
+                    
+                    logger.info(f"✅ Consulta exitosa para DNI: {numero}")
                     return {
                         'success': True,
-                        'data': data
+                        'data': data,
+                        'source': 'api'  # Indicador de que vino de API externa
                     }
                 elif response.status_code == 400:
                     logger.warning(f"DNI inválido o no encontrado: {numero}")
