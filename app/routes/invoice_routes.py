@@ -27,7 +27,7 @@ class LocationModel(BaseModel):
 
 
 class CustomerModel(BaseModel):
-    """Modelo para información del cliente (customer_number se genera automáticamente)"""
+    """Modelo para información del cliente"""
     name: str = Field(..., examples=["Geraldine Eva Flores Flores"])
     dni: str = Field(..., examples=["12345678"], description="DNI del cliente (requerido - identificador único)")
     phone: str = Field(..., examples=["+51 999 888 777"])
@@ -110,12 +110,12 @@ async def generar_factura_dinamica(request: InvoiceRequest):
     
     - **order_date**: Fecha de la orden
     - **order_number**: Número de orden
-    - **customer**: Información del cliente (customer_number se genera automáticamente si no se proporciona)
+    - **customer**: Información del cliente
     - **products**: Lista de productos (mínimo 1)
-    - **invoice_info**: Información adicional
+    - **invoice_info**: Información de factura (invoice_number, invoice_date)
     
     Returns:
-        PDF file: Factura personalizada descargable con información del cliente persistida
+        PDF file: Factura personalizada descargable con customer_number generado automáticamente
     """
     try:
         # Validar que hay al menos un producto
@@ -125,7 +125,24 @@ async def generar_factura_dinamica(request: InvoiceRequest):
                 detail="Debe incluir al menos un producto"
             )
         
-        # Obtener o crear cliente en la BD
+        # Paso 1: Crear registro en la tabla invoices
+        # El trigger generará automáticamente el customer_number
+        invoice_result = supabase_service.invoices.create_invoice(
+            invoice_number=request.invoice_info.invoice_number,
+            invoice_date=request.invoice_info.invoice_date
+        )
+        
+        if not invoice_result['success']:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al crear factura: {invoice_result.get('error', 'Error desconocido')}"
+            )
+        
+        # Obtener el customer_number generado automáticamente por el trigger
+        invoice_data = invoice_result['data']
+        generated_customer_number = invoice_data['customer_number']
+        
+        # Paso 2: Obtener o crear cliente en la tabla customers (sin customer_number)
         customer_result = supabase_service.customers.get_or_create_customer(
             name=request.customer.name,
             dni=request.customer.dni,
@@ -138,13 +155,12 @@ async def generar_factura_dinamica(request: InvoiceRequest):
                 detail=f"Error al gestionar cliente: {customer_result.get('error', 'Error desconocido')}"
             )
         
-        # Usar el customer_number de la BD (autogenerado o existente)
-        customer_data = customer_result['data']
+        # Paso 3: Preparar datos del cliente para el PDF con el customer_number de invoices
         customer_dict = {
-            'name': customer_data['name'],
-            'customer_number': customer_data['customer_number'],
-            'dni': customer_data.get('dni', ''),
-            'phone': customer_data.get('phone', '')
+            'name': request.customer.name,
+            'customer_number': generated_customer_number,  # Usar el generado por invoice
+            'dni': request.customer.dni,
+            'phone': request.customer.phone
         }
         
         # Convertir productos a diccionarios
@@ -171,7 +187,8 @@ async def generar_factura_dinamica(request: InvoiceRequest):
             media_type="application/pdf",
             headers={
                 "Content-Disposition": f"attachment; filename={filename}",
-                "X-Customer-Number": customer_data['customer_number']  # Header con el customer_number generado
+                "X-Customer-Number": generated_customer_number,  # Header con el customer_number generado
+                "X-Invoice-Id": str(invoice_data['id'])  # ID de la factura creada
             }
         )
         
