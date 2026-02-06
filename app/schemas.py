@@ -207,6 +207,10 @@ class ReniecDNIResponse(BaseModel):
     second_last_name: str = Field(..., description="Apellido materno")
     full_name: str = Field(..., description="Nombre completo")
     document_number: str = Field(..., description="Número de DNI")
+    source: Optional[str] = Field(
+        default=None, 
+        description="Fuente de los datos: 'database' (BD local) o 'api' (API externa)"
+    )
     
     model_config = ConfigDict(
         json_schema_extra={
@@ -216,7 +220,8 @@ class ReniecDNIResponse(BaseModel):
                     "first_last_name": "DELGADO",
                     "second_last_name": "CUELLAR",
                     "full_name": "DELGADO CUELLAR ROXANA KARINA",
-                    "document_number": "46027896"
+                    "document_number": "46027896",
+                    "source": "database"
                 }
             ]
         }

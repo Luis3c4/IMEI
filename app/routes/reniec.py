@@ -78,14 +78,16 @@ async def consultar_dni(
         
         # Retornar datos
         data = result['data']
-        logger.info(f"Consulta exitosa para DNI: {numero}")
+        source = result.get('source', 'unknown')
+        logger.info(f"Consulta exitosa para DNI: {numero} (fuente: {source})")
         
         return ReniecDNIResponse(
             first_name=data['first_name'],
             first_last_name=data['first_last_name'],
             second_last_name=data['second_last_name'],
             full_name=data['full_name'],
-            document_number=data['document_number']
+            document_number=data['document_number'],
+            source=source
         )
         
     except HTTPException:
