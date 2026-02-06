@@ -30,7 +30,7 @@ class CustomerModel(BaseModel):
     """Modelo para información del cliente"""
     name: str = Field(..., examples=["Geraldine Eva Flores Flores"])
     dni: str = Field(..., examples=["12345678"], description="DNI del cliente (requerido - identificador único)")
-    phone: str = Field(..., examples=["+51 999 888 777"])
+    phone: Optional[str] = Field(default=None, examples=["+51 999 888 777"])
 
 
 class ProductModel(BaseModel):
