@@ -4,7 +4,7 @@ Maneja la tabla: invoices
 """
 
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 from .base import BaseSupabaseRepository
 
 logger = logging.getLogger(__name__)
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class InvoiceRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con facturas"""
     
-    def create_invoice(self, invoice_number: str, invoice_date: str) -> Dict[str, Any]:
+    def create_invoice(self, invoice_number: str, invoice_date: str, customer_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Crea una nueva factura en la base de datos.
         El customer_number se genera automáticamente en la BD mediante trigger.
@@ -21,6 +21,7 @@ class InvoiceRepository(BaseSupabaseRepository):
         Args:
             invoice_number: Número de factura generado por el frontend (ej: "MA85377130")
             invoice_date: Fecha de la factura (ej: "September 04, 2025")
+            customer_id: ID del cliente (FK a customers.id). None para facturas sin relación.
             
         Returns:
             Dict con success, data (incluyendo customer_number generado automáticamente) o error
@@ -29,11 +30,15 @@ class InvoiceRepository(BaseSupabaseRepository):
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
-            invoice_data = {
+            invoice_data: Dict[str, Any] = {
                 'invoice_number': invoice_number.strip(),
                 'invoice_date': invoice_date.strip()
                 # customer_number se genera automáticamente por trigger
             }
+            
+            # Agregar customer_id solo si se proporciona
+            if customer_id is not None:
+                invoice_data['customer_id'] = customer_id
             
             response = self.client.table('invoices').insert(invoice_data).execute()
             
@@ -110,6 +115,36 @@ class InvoiceRepository(BaseSupabaseRepository):
             
         except Exception as e:
             logger.error(f"❌ Error buscando facturas por customer_number: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    def get_invoices_by_customer_id(self, customer_id: int) -> Dict[str, Any]:
+        """
+        Obtiene todas las facturas asociadas a un customer_id.
+        
+        Args:
+            customer_id: ID del cliente (FK a customers.id)
+            
+        Returns:
+            Dict con success, data (lista de facturas) o error
+        """
+        if not self.client:
+            return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
+        
+        try:
+            response = self.client.table('invoices').select('*').eq(
+                'customer_id', customer_id
+            ).order('created_at', desc=True).execute()
+            
+            if not response.data:
+                return {
+                    'success': False, 
+                    'error': f'No se encontraron facturas para customer_id {customer_id}'
+                }
+            
+            return {'success': True, 'data': response.data}
+            
+        except Exception as e:
+            logger.error(f"❌ Error buscando facturas por customer_id: {str(e)}")
             return {'success': False, 'error': str(e)}
     
     def get_all_invoices(self, limit: int = 100) -> Dict[str, Any]:

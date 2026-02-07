@@ -125,24 +125,8 @@ async def generar_factura_dinamica(request: InvoiceRequest):
                 detail="Debe incluir al menos un producto"
             )
         
-        # Paso 1: Crear registro en la tabla invoices
-        # El trigger generará automáticamente el customer_number
-        invoice_result = supabase_service.invoices.create_invoice(
-            invoice_number=request.invoice_info.invoice_number,
-            invoice_date=request.invoice_info.invoice_date
-        )
-        
-        if not invoice_result['success']:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error al crear factura: {invoice_result.get('error', 'Error desconocido')}"
-            )
-        
-        # Obtener el customer_number generado automáticamente por el trigger
-        invoice_data = invoice_result['data']
-        generated_customer_number = invoice_data['customer_number']
-        
-        # Paso 2: Obtener o crear cliente en la tabla customers (sin customer_number)
+        # Paso 1: Obtener o crear cliente PRIMERO (usando DNI único)
+        # Esto nos da el customer.id para relacionar con la factura
         customer_result = supabase_service.customers.get_or_create_customer(
             name=request.customer.name,
             dni=request.customer.dni,
@@ -154,6 +138,28 @@ async def generar_factura_dinamica(request: InvoiceRequest):
                 status_code=500,
                 detail=f"Error al gestionar cliente: {customer_result.get('error', 'Error desconocido')}"
             )
+        
+        # Obtener el ID del cliente para la foreign key
+        customer_data = customer_result['data']
+        customer_id = customer_data['id']
+        
+        # Paso 2: Crear registro en la tabla invoices con la relación al customer
+        # El trigger generará automáticamente el customer_number para el PDF
+        invoice_result = supabase_service.invoices.create_invoice(
+            invoice_number=request.invoice_info.invoice_number,
+            invoice_date=request.invoice_info.invoice_date,
+            customer_id=customer_id  # FK a customers.id
+        )
+        
+        if not invoice_result['success']:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error al crear factura: {invoice_result.get('error', 'Error desconocido')}"
+            )
+        
+        # Obtener el customer_number generado automáticamente por el trigger
+        invoice_data = invoice_result['data']
+        generated_customer_number = invoice_data['customer_number']
         
         # Paso 3: Preparar datos del cliente para el PDF con el customer_number de invoices
         customer_dict = {
