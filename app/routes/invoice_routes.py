@@ -2,7 +2,7 @@
 Rutas para generación de facturas PDF estilo Apple Store
 """
 from datetime import datetime
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -10,6 +10,7 @@ from io import BytesIO
 
 from app.services.invoice_pdf_service import InvoicePDFService
 from app.services.supabase_service import supabase_service
+from app.middleware import get_current_user_id
 
 router = APIRouter()
 
@@ -104,9 +105,13 @@ async def generar_factura_prueba(preview: bool = True):
 
 
 @router.post("/generate/pdf")
-async def generar_factura_dinamica(request: InvoiceRequest):
+async def generar_factura_dinamica(
+    request: InvoiceRequest,
+    user_id: str = Depends(get_current_user_id)
+):
     """
     Genera factura PDF con datos dinámicos desde el frontend
+    Requiere autenticación JWT de Supabase
     
     - **order_date**: Fecha de la orden
     - **order_number**: Número de orden
@@ -148,7 +153,8 @@ async def generar_factura_dinamica(request: InvoiceRequest):
         invoice_result = supabase_service.invoices.create_invoice(
             invoice_number=request.invoice_info.invoice_number,
             invoice_date=request.invoice_info.invoice_date,
-            customer_id=customer_id  # FK a customers.id
+            customer_id=customer_id,  # FK a customers.id
+            user_id=user_id  # FK a auth.users.id (usuario autenticado)
         )
         
         if not invoice_result['success']:
