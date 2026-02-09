@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class InvoiceRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con facturas"""
     
-    def create_invoice(self, invoice_number: str, invoice_date: str, customer_id: Optional[int] = None) -> Dict[str, Any]:
+    def create_invoice(self, invoice_number: str, invoice_date: str, customer_id: Optional[int] = None, user_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Crea una nueva factura en la base de datos.
         El customer_number se genera automáticamente en la BD mediante trigger.
@@ -22,6 +22,7 @@ class InvoiceRepository(BaseSupabaseRepository):
             invoice_number: Número de factura generado por el frontend (ej: "MA85377130")
             invoice_date: Fecha de la factura (ej: "September 04, 2025")
             customer_id: ID del cliente (FK a customers.id). None para facturas sin relación.
+            user_id: UUID del usuario autenticado (FK a auth.users.id). None para facturas legacy.
             
         Returns:
             Dict con success, data (incluyendo customer_number generado automáticamente) o error
@@ -39,6 +40,10 @@ class InvoiceRepository(BaseSupabaseRepository):
             # Agregar customer_id solo si se proporciona
             if customer_id is not None:
                 invoice_data['customer_id'] = customer_id
+            
+            # Agregar user_id solo si se proporciona
+            if user_id is not None:
+                invoice_data['user_id'] = user_id
             
             response = self.client.table('invoices').insert(invoice_data).execute()
             

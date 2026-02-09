@@ -29,7 +29,8 @@ class Settings(BaseSettings):
     
     # ============ SUPABASE (OPCIONAL) ============
     SUPABASE_URL: Optional[str] = os.getenv('SUPABASE_URL', None)
-    SUPABASE_KEY: Optional[str] = os.getenv('SUPABASE_KEY', None)
+    SUPABASE_KEY: Optional[str] = os.getenv('SUPABASE_KEY', None)  # Service Role Key (para operaciones de backend)
+    SUPABASE_ANON_KEY: Optional[str] = os.getenv('SUPABASE_ANON_KEY', None)  # Anon Key (para validación JWT)
     
     # Nota: Los nombres de tablas se usan como literales en el código.
     
