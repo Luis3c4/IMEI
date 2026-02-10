@@ -36,6 +36,8 @@ class CustomerModel(BaseModel):
 
 class ProductModel(BaseModel):
     """Modelo para producto en la factura"""
+    product_id: int = Field(..., examples=[1], description="ID del producto (FK a products.id)")
+    variant_id: Optional[int] = Field(None, examples=[5], description="ID del variant (FK a product_variants.id)")
     name: str = Field(..., examples=["IPAD MINI 8.3 WIFI 128GB PURPLE - USA"])
     product_number: str = Field(..., examples=["MXN93LL/A"])
     serial_number: str = Field(..., examples=["L9FHJMXD66"])
@@ -166,6 +168,20 @@ async def generar_factura_dinamica(
         # Obtener el customer_number generado automáticamente por el trigger
         invoice_data = invoice_result['data']
         generated_customer_number = invoice_data['customer_number']
+        invoice_id = invoice_data['id']
+        
+        # Paso 2.5: Persistir productos asociados a la factura
+        # Guardar snapshot de los productos en el momento de la venta
+        products_list = [p.model_dump() for p in request.products]
+        invoice_products_result = supabase_service.invoices.create_invoice_products(
+            invoice_id=invoice_id,
+            products_list=products_list
+        )
+        
+        if not invoice_products_result['success']:
+            # Log warning pero no fallar la generación del PDF
+            # Ya que la factura ya fue creada exitosamente
+            print(f"⚠️ Warning: Error al guardar productos de factura {invoice_id}: {invoice_products_result.get('error')}")
         
         # Paso 3: Preparar datos del cliente para el PDF con el customer_number de invoices
         customer_dict = {
@@ -175,8 +191,7 @@ async def generar_factura_dinamica(
             'phone': request.customer.phone
         }
         
-        # Convertir productos a diccionarios
-        products_list = [p.model_dump() for p in request.products]
+        # Convertir invoice_info a diccionario
         invoice_info_dict = request.invoice_info.model_dump()
         
         # Generar PDF dinámico
@@ -200,7 +215,7 @@ async def generar_factura_dinamica(
             headers={
                 "Content-Disposition": f"attachment; filename={filename}",
                 "X-Customer-Number": generated_customer_number,  # Header con el customer_number generado
-                "X-Invoice-Id": str(invoice_data['id'])  # ID de la factura creada
+                "X-Invoice-Id": str(invoice_id)  # ID de la factura creada
             }
         )
         
@@ -210,4 +225,43 @@ async def generar_factura_dinamica(
         raise HTTPException(
             status_code=500,
             detail=f"Error generando factura: {str(e)}"
+        )
+
+
+@router.get("/{invoice_id}/details")
+async def obtener_factura_con_productos(
+    invoice_id: int,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Obtiene los detalles completos de una factura incluyendo sus productos
+    Requiere autenticación JWT de Supabase
+    
+    Args:
+        invoice_id: ID de la factura a consultar
+        
+    Returns:
+        JSON con información de la factura y lista de productos asociados
+    """
+    try:
+        # Obtener factura con productos
+        result = supabase_service.invoices.get_invoice_with_products(invoice_id)
+        
+        if not result['success']:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Factura no encontrada: {result.get('error', 'Error desconocido')}"
+            )
+        
+        return {
+            "success": True,
+            "data": result['data']
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error obteniendo detalles de factura: {str(e)}"
         )
