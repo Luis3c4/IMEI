@@ -5,10 +5,13 @@ Incluye el método complejo save_device_query para guardar dispositivos consulta
 """
 
 import logging
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
+from collections import defaultdict
 from .base import BaseSupabaseRepository
 from app.config.pricing_pnumbers import get_static_product_number
 from app.utils.parsers import clean_apple_watch_model
+from app.utils.colors import get_color_hex, get_color_info
+from app.utils.formatters import format_date_spanish
 
 logger = logging.getLogger(__name__)
 
@@ -304,3 +307,236 @@ class ProductRepository(BaseSupabaseRepository):
         except Exception as e:
             logger.error(f"❌ Error actualizando status: {str(e)}")
             return {'success': False, 'error': str(e)}
+    
+    def get_products_hierarchical(
+        self, 
+        category: Optional[str] = None
+    ) -> Dict[str, Any]:
+        """
+        Obtiene todos los productos con estructura jerárquica de 3 niveles:
+        - Fase 1: Producto agrupado con todos los colores y capacidades
+        - Fase 2: Agrupación por capacidad con colores disponibles
+        - Fase 3: Items individuales con detalles completos
+        
+        Solo retorna items con status='available'.
+        
+        Args:
+            category: Filtro opcional por categoría (ej: 'IPHONE', 'MACBOOK')
+            
+        Returns:
+            Dict con success, data (productos jerárquicos), count
+        """
+        if not self.is_connected():
+            return {
+                'success': False, 
+                'error': 'Supabase no conectado', 
+                'data': [],
+                'count': 0
+            }
+        
+        assert self.client is not None
+        
+        try:
+            # Construir query base con nested select
+            query = self.client.table('products').select(
+                """
+                id,
+                name,
+                category,
+                created_at,
+                updated_at,
+                product_variants (
+                    id,
+                    color,
+                    capacity,
+                    price,
+                    model_description,
+                    product_items (
+                        id,
+                        serial_number,
+                        status,
+                        product_number,
+                        created_at
+                    )
+                )
+                """
+            )
+            
+            # Aplicar filtro de categoría si se especifica
+            if category:
+                query = query.eq('category', category.upper())
+            
+            # Ordenar por nombre
+            query = query.order('name', desc=False)
+            
+            response = query.execute()
+            
+            if not response.data:
+                return {
+                    'success': True,
+                    'data': [],
+                    'count': 0
+                }
+            
+            # Procesar cada producto
+            hierarchical_products = []
+            
+            for product in response.data:
+                if not isinstance(product, dict):
+                    continue
+                
+                product_id = product.get('id')
+                product_name = product.get('name', 'Unknown')
+                product_category = product.get('category')
+                variants = product.get('product_variants', [])
+                
+                if not isinstance(variants, list):
+                    continue
+                
+                # Estructuras para agregar datos
+                all_colors_set = set()  # Todos los colores del producto
+                all_capacities_set = set()  # Todas las capacidades del producto
+                capacity_groups_dict: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
+                    'items': [],
+                    'colors_set': set(),
+                    'variant_id': None
+                })
+                total_quantity = 0
+                latest_date = None
+                
+                # Procesar cada variante
+                for variant in variants:
+                    if not isinstance(variant, dict):
+                        continue
+                    
+                    variant_id = variant.get('id')
+                    color = str(variant.get('color')) if variant.get('color') is not None else None
+                    capacity = str(variant.get('capacity')) if variant.get('capacity') is not None else None
+                    items = variant.get('product_items', [])
+                    
+                    if not isinstance(items, list):
+                        continue
+                    
+                    # Filtrar solo items disponibles
+                    available_items = [
+                        item for item in items 
+                        if isinstance(item, dict) and item.get('status') == 'available'
+                    ]
+                    
+                    if not available_items:
+                        continue  # Saltar variantes sin items disponibles
+                    
+                    # Agregar color al set global (si existe)
+                    if color:
+                        all_colors_set.add(color)
+                    
+                    # Agregar capacidad al set global
+                    all_capacities_set.add(capacity)  # Puede ser None
+                    
+                    # Clave para agrupar por capacidad (usar string "null" para None)
+                    capacity_key: str = capacity if capacity is not None else "null"
+                    
+                    # Inicializar grupo si no existe
+                    if capacity_groups_dict[capacity_key]['variant_id'] is None:
+                        capacity_groups_dict[capacity_key]['variant_id'] = variant_id
+                    
+                    # Agregar color al grupo de capacidad (si existe)
+                    if color:
+                        capacity_groups_dict[capacity_key]['colors_set'].add(color)
+                    
+                    # Procesar cada item disponible
+                    for item in available_items:
+                        serial = str(item.get('serial_number', ''))
+                        product_number = str(item.get('product_number')) if item.get('product_number') else None
+                        item_created_at = str(item.get('created_at')) if item.get('created_at') else None
+                        
+                        # Actualizar fecha más reciente
+                        if item_created_at:
+                            if latest_date is None or item_created_at > str(latest_date):
+                                latest_date = item_created_at
+                        
+                        # Crear detalle del item
+                        item_detail = {
+                            'serial': serial,
+                            'productNumber': product_number,
+                            'capacity': capacity,
+                            'color': color or 'UNKNOWN',
+                            'colorHex': get_color_hex(color)
+                        }
+                        
+                        capacity_groups_dict[capacity_key]['items'].append(item_detail)
+                        total_quantity += 1
+                
+                # Si el producto no tiene items disponibles, saltar
+                if total_quantity == 0:
+                    continue
+                
+                # Convertir sets a listas con info de colores
+                all_colors_list = [
+                    get_color_info(color) for color in sorted(all_colors_set)
+                ]
+                
+                # Convertir capacidades a lista (mantener None como None)
+                all_capacities_list = sorted(
+                    [cap for cap in all_capacities_set if cap is not None]
+                ) + ([None] if None in all_capacities_set else [])
+                
+                # Construir capacity_groups
+                capacity_groups_list = []
+                for capacity_key, group_data in capacity_groups_dict.items():
+                    # Convertir colores del grupo
+                    group_colors = [
+                        get_color_info(color) 
+                        for color in sorted(group_data['colors_set'])
+                    ]
+                    
+                    capacity_value = None if capacity_key == "null" else capacity_key
+                    
+                    capacity_group = {
+                        'id': group_data['variant_id'],
+                        'capacity': capacity_value,
+                        'quantity': len(group_data['items']),
+                        'colors': group_colors,
+                        'items': group_data['items']
+                    }
+                    capacity_groups_list.append(capacity_group)
+                
+                # Ordenar grupos por capacidad (null al final)
+                capacity_groups_list.sort(
+                    key=lambda x: (x['capacity'] is None, x['capacity'] or '')
+                )
+                
+                # Formatear fecha de actualización
+                last_update_str = format_date_spanish(latest_date)
+                
+                # Construir producto jerárquico
+                hierarchical_product = {
+                    'id': product_id,
+                    'name': product_name,
+                    'totalQuantity': total_quantity,
+                    'capacities': all_capacities_list,
+                    'colors': all_colors_list,
+                    'lastUpdate': last_update_str,
+                    'capacityGroups': capacity_groups_list
+                }
+                
+                hierarchical_products.append(hierarchical_product)
+            
+            logger.info(
+                f"✅ Productos jerárquicos obtenidos: {len(hierarchical_products)} productos con stock disponible"
+            )
+            
+            return {
+                'success': True,
+                'data': hierarchical_products,
+                'count': len(hierarchical_products)
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo productos jerárquicos: {str(e)}")
+            return {
+                'success': False, 
+                'error': str(e), 
+                'data': [],
+                'count': 0
+            }

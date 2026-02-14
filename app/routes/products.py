@@ -2,10 +2,11 @@
 Rutas para manejar productos desde Supabase
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
 from typing import List, Dict, Any , Optional
 from pydantic import BaseModel
 from app.services.supabase_service import supabase_service
+from app.schemas import ProductHierarchyResponse
 import logging
 
 logger = logging.getLogger(__name__)
@@ -187,4 +188,61 @@ async def bulk_toggle_items_sold(request: BulkToggleRequest):
         failed=failed_count,
         results=results,
         message=f"Actualización completa: {updated_count} exitosos, {failed_count} fallidos"
+    )
+
+
+@router.get("/inventory", response_model=ProductHierarchyResponse)
+async def get_products_inventory(
+    category: Optional[str] = Query(
+        default=None,
+        description="Filtrar por categoría (ej: IPHONE, MACBOOK, APPLE WATCH)"
+    )
+):
+    """
+    Obtiene todo el inventario disponible con estructura jerárquica de 3 niveles.
+    
+    **Estructura jerárquica:**
+    - **Fase 1 (Producto)**: Agrupación por producto con cantidad total, capacidades y colores
+    - **Fase 2 (Capacidad)**: Agrupación por capacidad con cantidad y colores disponibles
+    - **Fase 3 (Items)**: Detalles individuales con serial, product number, capacidad y color
+    
+    **Solo retorna items con status='available'**
+    
+    Args:
+        category: Filtro opcional por categoría (ej: IPHONE, MACBOOK)
+        
+    Returns:
+        ProductHierarchyResponse con todo el inventario disponible
+        
+    Examples:
+        - `/products/inventory` - Todo el inventario
+        - `/products/inventory?category=IPHONE` - Solo iPhones disponibles
+    """
+    if not supabase_service.is_connected():
+        raise HTTPException(
+            status_code=503,
+            detail="Servicio de base de datos no disponible"
+        )
+    
+    logger.info(
+        f"📊 Solicitando inventario completo: category={category or 'ALL'}"
+    )
+    
+    result = supabase_service.products.get_products_hierarchical(
+        category=category
+    )
+    
+    if not result.get('success'):
+        logger.error(f"❌ Error obteniendo inventario: {result.get('error')}")
+        raise HTTPException(
+            status_code=500,
+            detail=result.get('error', 'Error al obtener inventario de productos')
+        )
+    
+    return ProductHierarchyResponse(
+        success=True,
+        data=result.get('data', []),
+        count=result.get('count', 0),
+        page=1,
+        pageSize=result.get('count', 0)
     )

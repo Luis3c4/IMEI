@@ -233,6 +233,95 @@ class ReniecDNIResponse(BaseModel):
     )
 
 
+# ============ PRODUCTS HIERARCHY ============
+
+class ColorInfo(BaseModel):
+    """Información de un color con su código hexadecimal"""
+    name: str = Field(..., description="Nombre del color (ej: SILVER, SPACE BLACK)")
+    hex: str = Field(..., description="Código hexadecimal del color (ej: #C0C0C0)")
+
+
+class ProductItemDetail(BaseModel):
+    """Detalle de un item individual de producto (Fase 3)"""
+    serial: str = Field(..., description="Serial number del dispositivo")
+    productNumber: Optional[str] = Field(None, description="Product Number Apple (ej: MFXG4LL/A)")
+    capacity: Optional[str] = Field(None, description="Capacidad del item (ej: 256GB)")
+    color: str = Field(..., description="Nombre del color")
+    colorHex: str = Field(..., description="Código hexadecimal del color")
+
+
+class CapacityGroup(BaseModel):
+    """Agrupación por capacidad con items (Fase 2)"""
+    id: int = Field(..., description="ID único del grupo de capacidad")
+    capacity: Optional[str] = Field(None, description="Capacidad (ej: 256GB) o null si no aplica")
+    quantity: int = Field(..., description="Cantidad de items disponibles en esta capacidad")
+    colors: List[ColorInfo] = Field(..., description="Lista de colores disponibles en esta capacidad")
+    items: List[ProductItemDetail] = Field(..., description="Lista de items individuales")
+
+
+class ProductHierarchical(BaseModel):
+    """Producto con estructura jerárquica de 3 niveles (Fase 1)"""
+    id: int = Field(..., description="ID del producto")
+    name: str = Field(..., description="Nombre del producto (ej: IPHONE 17 PRO MAX)")
+    totalQuantity: int = Field(..., description="Cantidad total de items disponibles")
+    capacities: List[Optional[str]] = Field(..., description="Lista de capacidades disponibles (puede contener null)")
+    colors: List[ColorInfo] = Field(..., description="Lista de todos los colores disponibles en el producto")
+    lastUpdate: str = Field(..., description="Fecha de última actualización en español (ej: 29 de enero)")
+    capacityGroups: List[CapacityGroup] = Field(..., description="Agrupaciones por capacidad con sus items")
+
+
+class ProductHierarchyResponse(BaseModel):
+    """Respuesta del endpoint de inventario jerárquico completo"""
+    success: bool = Field(..., description="Indica si la operación fue exitosa")
+    data: List[ProductHierarchical] = Field(..., description="Lista de productos con estructura jerárquica")
+    count: int = Field(..., description="Cantidad total de productos con stock disponible")
+    page: int = Field(default=1, description="Página (siempre 1, sin paginación)")
+    pageSize: int = Field(..., description="Total de productos retornados (igual a count)")
+    
+    model_config = ConfigDict(
+        json_schema_extra={
+            "examples": [
+                {
+                    "success": True,
+                    "data": [
+                        {
+                            "id": 1,
+                            "name": "IPHONE 17 PRO MAX",
+                            "totalQuantity": 15,
+                            "capacities": ["256GB", "512GB"],
+                            "colors": [
+                                {"name": "SILVER", "hex": "#C0C0C0"},
+                                {"name": "SPACE BLACK", "hex": "#1C1C1E"}
+                            ],
+                            "lastUpdate": "29 de enero",
+                            "capacityGroups": [
+                                {
+                                    "id": 1,
+                                    "capacity": "256GB",
+                                    "quantity": 8,
+                                    "colors": [{"name": "SILVER", "hex": "#C0C0C0"}],
+                                    "items": [
+                                        {
+                                            "serial": "Y3PYVFVY33",
+                                            "productNumber": "MFXG4LL/A",
+                                            "capacity": "256GB",
+                                            "color": "SILVER",
+                                            "colorHex": "#C0C0C0"
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ],
+                    "count": 1,
+                    "page": 1,
+                    "pageSize": 1
+                }
+            ]
+        }
+    )
+
+
 # ============ HEALTH CHECK ============
 
 class HealthResponse(BaseModel):

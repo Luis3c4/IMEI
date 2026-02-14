@@ -43,7 +43,7 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     # iPhone 17 Base
     'IPHONE 17': {
         '128GB': 699.0,
-        '256GB': 799.0,
+        '256GB': 829.0,
         '512GB': 999.0,
     },
     
