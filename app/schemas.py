@@ -247,7 +247,7 @@ class ProductItemDetail(BaseModel):
     productNumber: Optional[str] = Field(None, description="Product Number Apple (ej: MFXG4LL/A)")
     capacity: Optional[str] = Field(None, description="Capacidad del item (ej: 256GB)")
     color: str = Field(..., description="Nombre del color")
-    colorHex: str = Field(..., description="Código hexadecimal del color")
+    colorHex: Optional[str] = Field(None, description="Código hexadecimal del color")
 
 
 class CapacityGroup(BaseModel):

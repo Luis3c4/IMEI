@@ -460,9 +460,12 @@ class ProductRepository(BaseSupabaseRepository):
                             'serial': serial,
                             'productNumber': product_number,
                             'capacity': capacity,
-                            'color': color or 'UNKNOWN',
-                            'colorHex': get_color_hex(color)
+                            'color': color or '',
                         }
+                        
+                        # Solo agregar colorHex si hay color
+                        if color:
+                            item_detail['colorHex'] = get_color_hex(color)
                         
                         capacity_groups_dict[capacity_key]['items'].append(item_detail)
                         total_quantity += 1
