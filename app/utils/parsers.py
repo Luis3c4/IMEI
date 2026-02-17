@@ -118,10 +118,10 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
             result['brand'] = detected_accessory
             break
     
-    # 1. MARCA: Detectar si empieza con IPHONE, APPLE TV, SAMSUNG, etc (solo si no es accesorio)
+    # 1. MARCA: Detectar si empieza con IPHONE, APPLE TV, MAC, etc (solo si no es accesorio)
     if not detected_accessory:
         brands = [
-            'APPLE TV', 'APPLE WATCH', 'IPHONE', 'IPAD', 'MACBOOK', 'AIRPODS','APPLE PENCIL'
+            'APPLE TV', 'APPLE WATCH', 'IPHONE', 'IPAD', 'MACBOOK', 'AIRPODS','APPLE PENCIL', 'MAC'
         ]
         brands.sort(key=len, reverse=True)
         
@@ -135,7 +135,7 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     capacities = re.findall(r'\b(\d+(?:GB|TB|MB))\b', original_desc, re.IGNORECASE)
     capacities = [c.upper() for c in capacities]
     
-    if len(capacities) >= 2 and result['brand'] == 'MACBOOK':
+    if len(capacities) >= 2 and (result['brand'] == 'MACBOOK' or result['brand'] == 'MAC'):
         # MacBook: ordenar y asignar RAM (menor) y almacenamiento (mayor)
         def capacity_to_mb(cap_str: str) -> int:
             match = re.match(r'(\d+)(GB|TB)', cap_str)
