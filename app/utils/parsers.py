@@ -179,6 +179,7 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     # 4. COLOR: Buscar colores comunes Y SIGLAS DE COLORES (especialmente para MacBooks)
     # Mapeo de siglas a colores (principalmente para MacBooks)
     color_abbreviations = {
+        'PNK': 'PINK',
         'SG': 'SPACE GRAY',
         'RG': 'ROSE GOLD',
         'JB': 'JET BLACK',

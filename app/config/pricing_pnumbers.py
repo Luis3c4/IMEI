@@ -179,7 +179,7 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     
     # iPad Base (10ª Gen)
     'IPAD': {
-        '128GB': 349.0,
+        '128GB': 329.0,
         '256GB': 449.0,
         '512GB': 649.0,
     },
@@ -216,6 +216,9 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     # ============================================================
     'APPLE PENCIL PRO': {
         'DEFAULT': 129.0,
+    },
+    'APPLE PENCIL USB-C': {
+        'DEFAULT': 79.0,
     },
 
     # ============================================================
