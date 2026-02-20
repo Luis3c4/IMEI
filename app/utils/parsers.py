@@ -91,6 +91,11 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
     
     # Limpiar el string
     desc = model_desc.strip().upper()
+
+    # Normalización Apple Watch: algunas fuentes devuelven "WATCH ..." sin el prefijo "APPLE"
+    # Ejemplo: "WATCH SERIES 11 (GPS) ALUMINUM 46MM" -> "APPLE WATCH SERIES 11 (GPS) ALUMINUM 46MM"
+    if re.match(r'^WATCH\b', desc):
+        desc = f"APPLE {desc}"
     original_desc = desc  # Guardar copia para encontrar capacidades
     
     # 0. ACCESORIOS: Detectar accesorios ANTES de marcas para evitar confusión
