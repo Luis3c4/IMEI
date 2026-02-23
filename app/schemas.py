@@ -322,6 +322,33 @@ class ProductHierarchyResponse(BaseModel):
     )
 
 
+# ============ PRODUCTS CREATE ============
+
+class ProductCreateRequest(BaseModel):
+    """Solicitud para crear producto + variante + item"""
+    category: str = Field(..., description="Categoría del producto", min_length=1)
+    product_name: str = Field(..., description="Nombre del producto", min_length=1)
+    color: Optional[str] = Field(default=None, description="Color de la variante")
+    capacity: Optional[str] = Field(default=None, description="Capacidad/Tamaño/Presentación")
+    serial_number: str = Field(..., description="Serial Number único", min_length=1)
+    product_number: str = Field(..., description="Product Number", min_length=1)
+
+
+class ProductCreateData(BaseModel):
+    """Datos de creación de producto"""
+    product_id: int
+    variant_id: int
+    item_id: int
+
+
+class ProductCreateResponse(BaseModel):
+    """Respuesta de creación de producto"""
+    success: bool
+    data: Optional[ProductCreateData] = None
+    error: Optional[str] = None
+    message: Optional[str] = None
+
+
 # ============ HEALTH CHECK ============
 
 class HealthResponse(BaseModel):

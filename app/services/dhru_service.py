@@ -92,7 +92,7 @@ class DHRUService:
                 }
             
             # IDs de servicios permitidos
-            ALLOWED_SERVICE_IDS = [219]
+            ALLOWED_SERVICE_IDS = [30]
             
             # DHRU devuelve la lista con la key "Service List"
             if 'Service List' in data:

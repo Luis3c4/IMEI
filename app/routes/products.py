@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from typing import List, Dict, Any , Optional
 from pydantic import BaseModel
 from app.services.supabase_service import supabase_service
-from app.schemas import ProductHierarchyResponse
+from app.schemas import ProductHierarchyResponse, ProductCreateRequest, ProductCreateResponse, ProductCreateData
 import logging
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,47 @@ async def get_all_products():
         success=True,
         data=result.get('data', []),
         count=result.get('count', 0)
+    )
+
+
+@router.post("/", response_model=ProductCreateResponse)
+async def create_product(request: ProductCreateRequest):
+    """
+    Crea un producto con variante e item de inventario.
+
+    Si el producto o la variante ya existen, se reutilizan y se crea
+    un nuevo item con serial único.
+    """
+    if not supabase_service.is_connected():
+        raise HTTPException(
+            status_code=503,
+            detail="Servicio de base de datos no disponible"
+        )
+
+    result = supabase_service.products.create_product_with_item(
+        category=request.category,
+        product_name=request.product_name,
+        color=request.color,
+        capacity=request.capacity,
+        serial_number=request.serial_number,
+        product_number=request.product_number,
+    )
+
+    if not result.get('success'):
+        error_message = result.get('error', 'Error al crear producto')
+        if 'serial' in error_message.lower():
+            raise HTTPException(status_code=409, detail=error_message)
+        raise HTTPException(status_code=400, detail=error_message)
+
+    data = result.get('data', {})
+    return ProductCreateResponse(
+        success=True,
+        data=ProductCreateData(
+            product_id=data.get('product_id'),
+            variant_id=data.get('variant_id'),
+            item_id=data.get('item_id'),
+        ),
+        message=result.get('message', 'Producto creado correctamente')
     )
 
 

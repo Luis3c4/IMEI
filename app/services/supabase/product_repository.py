@@ -9,6 +9,7 @@ from typing import Dict, Any, Optional, List
 from collections import defaultdict
 from .base import BaseSupabaseRepository
 from app.config.pricing_pnumbers import get_static_product_number
+from app.services.product_pricing_service import product_pricing_service
 from app.utils.parsers import clean_apple_watch_model
 from app.utils.colors import get_color_hex, get_color_info
 from app.utils.formatters import format_date_spanish
@@ -18,6 +19,172 @@ logger = logging.getLogger(__name__)
 
 class ProductRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con productos e inventario"""
+
+    def create_product_with_item(
+        self,
+        category: str,
+        product_name: str,
+        color: Optional[str],
+        capacity: Optional[str],
+        serial_number: str,
+        product_number: str,
+    ) -> Dict[str, Any]:
+        """
+        Crea un registro completo de inventario:
+        - Product (si no existe por name + category)
+        - Product Variant (si no existe por product_id + color + capacity)
+        - Product Item (siempre nuevo, serial único)
+
+        Returns:
+            Dict con success, data o error
+        """
+        if not self.is_connected():
+            return {'success': False, 'error': 'Supabase no conectado'}
+
+        assert self.client is not None
+
+        def _normalize_optional_variant_value(value: Optional[str]) -> Optional[str]:
+            if value is None:
+                return None
+            normalized = value.strip()
+            if not normalized:
+                return None
+
+            upper_value = normalized.upper()
+            if upper_value in {"SIN COLOR", "SIN CAPACIDAD", "NULL", "NONE", "N/A"}:
+                return None
+
+            return normalized
+
+        normalized_category = category.strip().upper()
+        normalized_name = product_name.strip()
+        normalized_color = _normalize_optional_variant_value(color)
+        normalized_capacity = _normalize_optional_variant_value(capacity)
+        normalized_serial = serial_number.strip().upper()
+        normalized_product_number = product_number.strip().upper()
+
+        if not all([
+            normalized_category,
+            normalized_name,
+            normalized_serial,
+            normalized_product_number,
+        ]):
+            return {'success': False, 'error': 'Todos los campos son obligatorios'}
+
+        detected_price = product_pricing_service.get_product_price({
+            'full_model': normalized_name,
+            'capacity': normalized_capacity,
+            'ram': None,
+        })
+
+        if detected_price is None:
+            capacity_label = normalized_capacity or 'SIN CAPACIDAD'
+            return {
+                'success': False,
+                'error': f'No se encontró precio automático para {normalized_name} {capacity_label}'
+            }
+
+        try:
+            # 1) Buscar o crear producto
+            product_response = self.client.table('products').select('id').eq(
+                'name', normalized_name
+            ).eq('category', normalized_category).execute()
+
+            if product_response.data and len(product_response.data) > 0:
+                product_data = product_response.data[0]
+                assert isinstance(product_data, dict)
+                product_id = product_data['id']
+            else:
+                new_product = self.client.table('products').insert({
+                    'name': normalized_name,
+                    'category': normalized_category,
+                }).execute()
+
+                if not new_product.data or len(new_product.data) == 0:
+                    return {'success': False, 'error': 'No se pudo crear el producto'}
+
+                new_product_data = new_product.data[0]
+                assert isinstance(new_product_data, dict)
+                product_id = new_product_data['id']
+
+            # 2) Buscar o crear variante
+            variant_query = self.client.table('product_variants').select('id, price').eq(
+                'product_id', product_id
+            )
+
+            if normalized_color is not None:
+                variant_query = variant_query.eq('color', normalized_color)
+            else:
+                variant_query = variant_query.is_('color', 'null')
+
+            if normalized_capacity is not None:
+                variant_query = variant_query.eq('capacity', normalized_capacity)
+            else:
+                variant_query = variant_query.is_('capacity', 'null')
+
+            variant_response = variant_query.execute()
+
+            if variant_response.data and len(variant_response.data) > 0:
+                variant_data = variant_response.data[0]
+                assert isinstance(variant_data, dict)
+                variant_id = variant_data['id']
+
+                # Mantener precio actualizado al último registro manual
+                current_price = variant_data.get('price')
+                if current_price != detected_price:
+                    self.client.table('product_variants').update({
+                        'price': detected_price
+                    }).eq('id', variant_id).execute()
+            else:
+                new_variant = self.client.table('product_variants').insert({
+                    'product_id': product_id,
+                    'color': normalized_color,
+                    'capacity': normalized_capacity,
+                    'price': detected_price,
+                }).execute()
+
+                if not new_variant.data or len(new_variant.data) == 0:
+                    return {'success': False, 'error': 'No se pudo crear la variante'}
+
+                new_variant_data = new_variant.data[0]
+                assert isinstance(new_variant_data, dict)
+                variant_id = new_variant_data['id']
+
+            # 3) Validar serial único
+            existing_item = self.client.table('product_items').select('id').eq(
+                'serial_number', normalized_serial
+            ).execute()
+
+            if existing_item.data and len(existing_item.data) > 0:
+                return {'success': False, 'error': 'El serial number ya existe'}
+
+            # 4) Crear item
+            new_item = self.client.table('product_items').insert({
+                'variant_id': variant_id,
+                'serial_number': normalized_serial,
+                'product_number': normalized_product_number,
+                'status': 'available',
+            }).execute()
+
+            if not new_item.data or len(new_item.data) == 0:
+                return {'success': False, 'error': 'No se pudo crear el item de inventario'}
+
+            item_data = new_item.data[0]
+            assert isinstance(item_data, dict)
+            item_id = item_data['id']
+
+            return {
+                'success': True,
+                'data': {
+                    'product_id': product_id,
+                    'variant_id': variant_id,
+                    'item_id': item_id,
+                },
+                'message': 'Producto registrado correctamente'
+            }
+        except Exception as e:
+            logger.error(f"❌ Error creando producto manualmente: {str(e)}")
+            return {'success': False, 'error': str(e)}
     
     def get_products_with_variants(self) -> Dict[str, Any]:
         """
