@@ -10,7 +10,6 @@ from app.schemas import (
     BalanceResponse, ServicesResponse, HistoryRequest, HistoryResponse
 )
 from app.services.dhru_service import DHRUService
-from app.services.sheets_service import SheetsService
 from app.services.supabase_service import SupabaseService
 from app.services.product_pricing_service import product_pricing_service
 from app.utils.validators import DeviceInputValidator
@@ -20,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 dhru_service = DHRUService()
-sheets_service = SheetsService()
 supabase_service = SupabaseService()
 
 
@@ -48,7 +46,6 @@ async def query_device(request: QueryDeviceRequest):
     - balance: float - Balance actual de la cuenta
     - price: float - Precio de la consulta
     - order_id: str - ID del pedido
-    - sheet_updated: bool - Si se guardó en Google Sheets
     - supabase_saved: bool - Si se guardó en Supabase
     - parsed_model: dict - Información parseada del modelo (brand, color, capacity, etc)
     
@@ -95,30 +92,9 @@ async def query_device(request: QueryDeviceRequest):
             detail=f"Error consultando DHRU: {str(e)}"
         )
     
-    # 3. GUARDAR EN GOOGLE SHEETS si fue exitoso
     if result['success']:
         result['data'] = normalize_keys(result['data'])
         user_product_number = request.product_number.strip().upper() if request.product_number else None
-        
-        try:
-            sheets_result = sheets_service.add_record(
-                device_info=result['data'],
-                metadata={
-                    'input_value': request.input_value,
-                    'service_id': request.service_id,
-                    'order_id': result.get('order_id'),
-                    'price': result.get('price'),
-                    'balance': result.get('balance')
-                }
-            )
-            result['sheet_updated'] = sheets_result['success']
-            if sheets_result['success']:
-                result['total_registros'] = sheets_result.get('total_records', 0)
-                result['sheet_url'] = f"https://docs.google.com/spreadsheets/d/{sheets_service.sheet_id}"
-        except Exception as e:
-            # Si falla Google Sheets, no bloqueamos la respuesta
-            result['sheet_updated'] = False
-            result['sheet_error'] = str(e)
         
         # 4. GUARDAR EN SUPABASE si está conectado
         try:

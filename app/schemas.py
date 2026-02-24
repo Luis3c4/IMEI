@@ -158,25 +158,6 @@ class HistoryResponse(BaseModel):
     error: Optional[str] = None
 
 
-# ============ SHEETS ENDPOINTS ============
-
-class StatsResponse(BaseModel):
-    """Respuesta de estadísticas del sheet"""
-    success: bool
-    total_consultas: Optional[int] = None
-    ultima_consulta: Optional[str] = None
-    sheet_url: Optional[str] = None
-    sheet_existe: Optional[bool] = None
-    error: Optional[str] = None
-
-
-class SheetUrlResponse(BaseModel):
-    """Respuesta con URL del sheet"""
-    url: Optional[str] = None
-    sheet_id: str
-    error: Optional[str] = None
-
-
 # ============ RENIEC ENDPOINTS ============
 
 class ReniecDNIRequest(BaseModel):

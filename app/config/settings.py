@@ -23,10 +23,6 @@ class Settings(BaseSettings):
     RENIEC_API_BASE: str = 'https://api.decolecta.com/v1/reniec'
     RENIEC_API_TOKEN: str = os.getenv('RENIEC_API_TOKEN', '')
     
-    # ============ GOOGLE SHEETS ============
-    GOOGLE_SHEET_ID: str = os.getenv('GOOGLE_SHEET_ID', '')
-    GOOGLE_CREDENTIALS_JSON: Optional[str] = os.getenv('GOOGLE_CREDENTIALS_JSON', None)
-    
     # ============ SUPABASE (OPCIONAL) ============
     SUPABASE_URL: Optional[str] = os.getenv('SUPABASE_URL', None)
     SUPABASE_KEY: Optional[str] = os.getenv('SUPABASE_KEY', None)  # Service Role Key (para operaciones de backend)

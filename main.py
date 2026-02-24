@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 # Importar los blueprints
-from app.routes import health, devices, sheets, invoice_routes, products, reniec
+from app.routes import health, devices, invoice_routes, products, reniec
 
 # Configurar logging
 logging.basicConfig(
@@ -33,18 +33,6 @@ async def lifespan(app: FastAPI):
     print("\n" + "="*60)
     print("🚀 IMEI API - FastAPI iniciando...")
     print("="*60)
-    
-    # Startup: Inicializar Google Sheets
-    try:
-        from app.services.sheets_service import SheetsService
-        sheets_service = SheetsService()
-        result = sheets_service.initialize_sheet()
-        if result['success']:
-            print("✅ Google Sheets inicializado correctamente")
-        else:
-            print(f"⚠️  Advertencia al inicializar Google Sheets: {result.get('error')}")
-    except Exception as e:
-        print(f"⚠️  No se pudo inicializar Google Sheets: {str(e)}")
     
     print("\n✅ Servidor listo para recibir peticiones")
     print("📚 Documentación interactiva: http://localhost:8000/docs")
@@ -110,13 +98,6 @@ def create_app() -> FastAPI:
         print("   ✓ Devices routes registradas (/api/devices/*)")
         
         app.include_router(
-            sheets.router,
-            prefix="/api/sheets",
-            tags=["sheets"]
-        )
-        print("   ✓ Sheets routes registradas (/api/sheets/*)")
-        
-        app.include_router(
             invoice_routes.router,
             prefix="/api/invoices",
             tags=["invoices"]
@@ -140,7 +121,6 @@ def create_app() -> FastAPI:
         # Solo registrar sin imprimir en recarga
         app.include_router(health.router, tags=["health"])
         app.include_router(devices.router, prefix="/api/devices", tags=["devices"])
-        app.include_router(sheets.router, prefix="/api/sheets", tags=["sheets"])
         app.include_router(invoice_routes.router, prefix="/api/invoices", tags=["invoices"])
         app.include_router(products.router, prefix="/api/products", tags=["products"])
         app.include_router(reniec.router, prefix="/api/reniec", tags=["reniec"])
@@ -156,7 +136,6 @@ def create_app() -> FastAPI:
             "endpoints": {
                 "health": "/health",
                 "devices": "/api/devices/*",
-                "sheets": "/api/sheets/*",
                 "invoices": "/api/invoices/*",
                 "products": "/api/products/*",
                 "reniec": "/api/reniec/*"
