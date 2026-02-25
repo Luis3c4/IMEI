@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 # Importar los blueprints
-from app.routes import health, devices, invoice_routes, products, reniec
+from app.routes import health, devices, invoice_routes, products, reniec, customers
 
 # Configurar logging
 logging.basicConfig(
@@ -117,6 +117,13 @@ def create_app() -> FastAPI:
             tags=["reniec"]
         )
         print("   ✓ RENIEC routes registradas (/api/reniec/*)")
+
+        app.include_router(
+            customers.router,
+            prefix="/api/customers",
+            tags=["customers"]
+        )
+        print("   ✓ Customers routes registradas (/api/customers/*)")
     else:
         # Solo registrar sin imprimir en recarga
         app.include_router(health.router, tags=["health"])
@@ -124,6 +131,7 @@ def create_app() -> FastAPI:
         app.include_router(invoice_routes.router, prefix="/api/invoices", tags=["invoices"])
         app.include_router(products.router, prefix="/api/products", tags=["products"])
         app.include_router(reniec.router, prefix="/api/reniec", tags=["reniec"])
+        app.include_router(customers.router, prefix="/api/customers", tags=["customers"])
     
     # ============ ROOT ENDPOINT ============
     @app.get("/", tags=["root"])
@@ -138,7 +146,8 @@ def create_app() -> FastAPI:
                 "devices": "/api/devices/*",
                 "invoices": "/api/invoices/*",
                 "products": "/api/products/*",
-                "reniec": "/api/reniec/*"
+                "reniec": "/api/reniec/*",
+                "customers": "/api/customers/*"
             }
         }
     

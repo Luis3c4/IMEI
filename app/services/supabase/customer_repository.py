@@ -199,6 +199,45 @@ class CustomerRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error obteniendo datos de RENIEC del cliente: {str(e)}")
             return {'success': False, 'error': str(e)}
     
+    def get_all_customers(self, search: Optional[str] = None) -> Dict[str, Any]:
+        """
+        Devuelve la lista de todos los clientes ordenados por índice descendente.
+        
+        Args:
+            search: Texto opcional para filtrar por nombre, DNI o teléfono.
+            
+        Returns:
+            Dict con success, data (lista) o error
+        """
+        if not self.client:
+            return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
+
+        try:
+            query = self.client.table('customers').select(
+                'id, name, dni, phone, created_at, first_name, first_last_name, second_last_name'
+            ).order('id', desc=True)
+
+            response = query.execute()
+
+            customers: list = response.data or []
+
+            # Filtro opcional en Python (Supabase REST no expone ilike multi-columna fácilmente)
+            if search:
+                term = search.lower()
+                customers = [
+                    c for c in customers
+                    if term in (c.get('name') or '').lower()
+                    or term in (c.get('dni') or '')
+                    or term in (c.get('phone') or '').lower()
+                ]
+
+            logger.info(f"✅ {len(customers)} clientes obtenidos")
+            return {'success': True, 'data': customers, 'total': len(customers)}
+
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo clientes: {str(e)}")
+            return {'success': False, 'error': str(e)}
+
     def update_customer_reniec_data(self, dni: str, reniec_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Actualiza los datos de RENIEC de un cliente existente o crea uno nuevo.
