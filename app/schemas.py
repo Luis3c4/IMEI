@@ -330,6 +330,28 @@ class ProductCreateResponse(BaseModel):
     message: Optional[str] = None
 
 
+# ============ CUSTOMERS ============
+
+class CustomerListItem(BaseModel):
+    """Un cliente en el listado"""
+    id: int
+    name: Optional[str] = None
+    dni: Optional[str] = None
+    phone: Optional[str] = None
+    created_at: Optional[str] = None
+    first_name: Optional[str] = None
+    first_last_name: Optional[str] = None
+    second_last_name: Optional[str] = None
+
+
+class CustomerListResponse(BaseModel):
+    """Respuesta del listado de clientes"""
+    success: bool
+    data: List[CustomerListItem] = []
+    total: int = 0
+    error: Optional[str] = None
+
+
 # ============ HEALTH CHECK ============
 
 class HealthResponse(BaseModel):
