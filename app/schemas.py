@@ -342,6 +342,7 @@ class CustomerListItem(BaseModel):
     first_name: Optional[str] = None
     first_last_name: Optional[str] = None
     second_last_name: Optional[str] = None
+    products: List[str] = []
 
 
 class CustomerListResponse(BaseModel):
