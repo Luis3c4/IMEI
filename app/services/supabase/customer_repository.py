@@ -214,12 +214,24 @@ class CustomerRepository(BaseSupabaseRepository):
 
         try:
             query = self.client.table('customers').select(
-                'id, name, dni, phone, created_at, first_name, first_last_name, second_last_name'
+                'id, name, dni, phone, created_at, first_name, first_last_name, second_last_name,'
+                'invoices(invoice_products(products(name)))'
             ).order('id', desc=True)
 
             response = query.execute()
 
             customers: list = response.data or []
+
+            # Extraer nombres de productos únicos por cliente
+            for customer in customers:
+                invoices = customer.pop('invoices', []) or []
+                product_names: set = set()
+                for invoice in invoices:
+                    for ip in invoice.get('invoice_products', []) or []:
+                        product = ip.get('products')
+                        if product and product.get('name'):
+                            product_names.add(product['name'])
+                customer['products'] = sorted(product_names)
 
             # Filtro opcional en Python (Supabase REST no expone ilike multi-columna fácilmente)
             if search:
