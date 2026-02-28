@@ -75,6 +75,24 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         '512GB': 1399.0,
         'DEFAULT': 1199.0,
     },
+    'MACBOOK AIR ES (15-INCH M4': {
+        '16GB/256GB': 1299.0,
+        '16GB/512GB': 1499.0,
+        '24GB/512GB': 1699.0,
+        # Fallback por capacidad de almacenamiento solo
+        '256GB': 1299.0,
+        '512GB': 1499.0,
+        'DEFAULT': 1299.0,
+    },
+    'MACBOOK AIR ES (13-INCH M4': {
+        '16GB/256GB': 1099.0,
+        '16GB/512GB': 1299.0,
+        '24GB/512GB': 1399.0,
+        # Fallback por capacidad de almacenamiento solo
+        '256GB': 1099.0,
+        '512GB': 1299.0,
+        'DEFAULT': 1099.0,
+    },
     # MacBook Pro 14" M4 PRO/MAX
     'MACBOOK PRO (14-INCH': {   
         '24GB/512GB': 1999.0,
@@ -231,13 +249,6 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         '24GB/1TB': 999.0,
         'DEFAULT': 599.9,
     },
-
-    # ============================================================
-    # Mackook whit ñ
-    # ============================================================
-    'MACBOOK AIR': {
-        'DEFAULT': 1220.0,
-    }
 }
 
 
