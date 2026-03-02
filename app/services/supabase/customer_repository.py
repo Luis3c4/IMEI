@@ -4,7 +4,9 @@ Maneja la tabla: customers
 """
 
 import logging
+import math
 from typing import Dict, Any, Optional
+from postgrest.types import CountMethod
 from .base import BaseSupabaseRepository
 
 logger = logging.getLogger(__name__)
@@ -199,15 +201,17 @@ class CustomerRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error obteniendo datos de RENIEC del cliente: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_all_customers(self, search: Optional[str] = None) -> Dict[str, Any]:
+    def get_all_customers(self, search: Optional[str] = None, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
         """
-        Devuelve la lista de todos los clientes ordenados por índice descendente.
+        Devuelve la lista paginada de clientes ordenados por índice descendente.
         
         Args:
             search: Texto opcional para filtrar por nombre, DNI o teléfono.
+            page: Número de página (1-based, default 1).
+            page_size: Registros por página (default 20).
             
         Returns:
-            Dict con success, data (lista) o error
+            Dict con success, data (lista), total, page, page_size, total_pages o error
         """
         if not self.client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
@@ -215,12 +219,23 @@ class CustomerRepository(BaseSupabaseRepository):
         try:
             query = self.client.table('customers').select(
                 'id, name, dni, phone, created_at, first_name, first_last_name, second_last_name,'
-                'invoices(invoice_products(products(name)))'
+                'invoices(invoice_products(products(name)))',
+                count=CountMethod.exact
             ).order('id', desc=True)
+
+            # Filtro server-side con ilike multi-columna
+            if search:
+                term = search.strip()
+                query = query.or_(f'name.ilike.%{term}%,dni.ilike.%{term}%,phone.ilike.%{term}%')
+
+            # Paginación server-side
+            offset = (page - 1) * page_size
+            query = query.range(offset, offset + page_size - 1)
 
             response = query.execute()
 
             customers: list = response.data or []
+            total: int = response.count or 0
 
             # Extraer nombres de productos únicos por cliente
             for customer in customers:
@@ -233,18 +248,17 @@ class CustomerRepository(BaseSupabaseRepository):
                             product_names.add(product['name'])
                 customer['products'] = sorted(product_names)
 
-            # Filtro opcional en Python (Supabase REST no expone ilike multi-columna fácilmente)
-            if search:
-                term = search.lower()
-                customers = [
-                    c for c in customers
-                    if term in (c.get('name') or '').lower()
-                    or term in (c.get('dni') or '')
-                    or term in (c.get('phone') or '').lower()
-                ]
+            total_pages = math.ceil(total / page_size) if total > 0 else 1
 
-            logger.info(f"✅ {len(customers)} clientes obtenidos")
-            return {'success': True, 'data': customers, 'total': len(customers)}
+            logger.info(f"✅ {len(customers)} clientes obtenidos (página {page}/{total_pages})")
+            return {
+                'success': True,
+                'data': customers,
+                'total': total,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+            }
 
         except Exception as e:
             logger.error(f"❌ Error obteniendo clientes: {str(e)}")
