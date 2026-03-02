@@ -350,6 +350,9 @@ class CustomerListResponse(BaseModel):
     success: bool
     data: List[CustomerListItem] = []
     total: int = 0
+    page: int = 1
+    page_size: int = 20
+    total_pages: int = 1
     error: Optional[str] = None
 
 
