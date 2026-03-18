@@ -216,7 +216,7 @@ class ProductRepository(BaseSupabaseRepository):
                     )
                 )
                 """
-            ).execute()
+            ).eq('is_visible', True).execute()
 
             products = list(response.data) if response.data else []
             for product in products:
