@@ -3,6 +3,7 @@ Device Routes - Endpoints para consulta de dispositivos
 Maneja todas las peticiones relacionadas con consulta de IMEI
 """
 
+import asyncio
 import logging
 from fastapi import APIRouter, HTTPException
 from app.schemas import (
@@ -63,7 +64,7 @@ async def query_device(request: QueryDeviceRequest):
     
     # 2. CONSULTAR DHRU (con fallback automático de 219 a 30)
     try:
-        result = dhru_service.query_device(
+        result = await dhru_service.query_device(
             service_id=request.service_id,
             imei=request.input_value,
             format=request.formato
@@ -74,7 +75,7 @@ async def query_device(request: QueryDeviceRequest):
         used_fallback = False
         if not result['success'] and request.service_id == "219":
             logger.warning(f"⚠️  Servicio 219 falló, intentando fallback a servicio 30...")
-            result = dhru_service.query_device(
+            result = await dhru_service.query_device(
                 service_id="30",
                 imei=request.input_value,
                 format=request.formato
@@ -120,18 +121,24 @@ async def query_device(request: QueryDeviceRequest):
             product_number = user_product_number or result['data'].get('Part_Number')
             
             # Guardar en Supabase
-            supabase_result = supabase_service.products.save_device_query(
-                device_info=result['data'],
-                metadata={
-                    'input_value': request.input_value,
-                    'service_id': "30" if used_fallback else request.service_id,  # Usar servicio real
-                    'order_id': result.get('order_id'),
-                    'price': result.get('price'),  # Precio de consulta DHRU
-                    'product_price': product_price,  # Precio del producto
-                    'product_number': product_number,  # Product Number manual o DHRU (o None)
-                    'balance': result.get('balance')
-                },
-                parsed_model=parsed_model
+            _device_info = result['data']
+            _metadata = {
+                'input_value': request.input_value,
+                'service_id': "30" if used_fallback else request.service_id,
+                'order_id': result.get('order_id'),
+                'price': result.get('price'),
+                'product_price': product_price,
+                'product_number': product_number,
+                'balance': result.get('balance')
+            }
+            _parsed_model = parsed_model
+            supabase_result = await asyncio.get_running_loop().run_in_executor(
+                None,
+                lambda: supabase_service.products.save_device_query(
+                    device_info=_device_info,
+                    metadata=_metadata,
+                    parsed_model=_parsed_model
+                )
             )
             
             result['supabase_saved'] = supabase_result['success']
@@ -176,7 +183,7 @@ async def get_balance():
     - message: str - Mensaje descriptivo
     """
     try:
-        result = dhru_service.get_balance()
+        result = await dhru_service.get_balance()
         if result['success']:
             result['message'] = "Balance obtenido correctamente"
         else:
@@ -215,7 +222,7 @@ async def get_services():
     """
     try:
         logger.info("Consultando servicios DHRU...")
-        result = dhru_service.get_services()
+        result = await dhru_service.get_services()
         logger.info(f"Resultado de servicios: success={result.get('success')}")
         
         if result['success']:
@@ -282,7 +289,7 @@ async def search_history(request: HistoryRequest):
         )
     
     try:
-        result = dhru_service.search_history(
+        result = await dhru_service.search_history(
             imei_or_order=request.imei_o_order_id,
             format=request.formato
         )

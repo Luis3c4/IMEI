@@ -68,9 +68,10 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     },
 
     'MACBOOK AIR (13-INCH M5': {
-        '16GB/256GB': 999.0,
-        '16GB/512GB': 1099.0,
-        '24GB/512GB': 1399.0,
+        '16GB/512GB': 1199.0,
+        '16GB/1TB': 1299.0,
+        '24GB/512GB': 1299.0,
+        '24GB/1TB': 1499.0,
         # Fallback por capacidad de almacenamiento solo
         '256GB': 999.0,
         '512GB': 1299.0,
@@ -88,9 +89,10 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     },
 
     'MACBOOK AIR (15-INCH M5': {
-        '16GB/256GB': 1199.0,
-        '16GB/512GB': 1399.0,
+        '16GB/512GB': 1299.0,
+        '16GB/1TB': 1499.0,
         '24GB/512GB': 1499.0,
+        '24GB/1TB': 1699.0,
         # Fallback por capacidad de almacenamiento solo
         '256GB': 1199.0,
         '512GB': 1399.0,

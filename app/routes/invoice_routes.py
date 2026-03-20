@@ -7,6 +7,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
 from io import BytesIO
+import asyncio
 
 from app.services.invoice_pdf_service import InvoicePDFService
 from app.services.supabase_service import supabase_service
@@ -73,7 +74,7 @@ class InvoiceRequest(BaseModel):
 
 
 @router.get("/test/pdf")
-async def generar_factura_prueba(preview: bool = True):
+def generar_factura_prueba(preview: bool = True):
     """
     Genera factura PDF estática para pruebas
     
@@ -134,10 +135,14 @@ async def generar_factura_dinamica(
         
         # Paso 1: Obtener o crear cliente PRIMERO (usando DNI único)
         # Esto nos da el customer.id para relacionar con la factura
-        customer_result = supabase_service.customers.get_or_create_customer(
-            name=request.customer.name,
-            dni=request.customer.dni,
-            phone=request.customer.phone
+        loop = asyncio.get_running_loop()
+        customer_result = await loop.run_in_executor(
+            None,
+            lambda: supabase_service.customers.get_or_create_customer(
+                name=request.customer.name,
+                dni=request.customer.dni,
+                phone=request.customer.phone
+            )
         )
         
         if not customer_result['success']:
@@ -152,11 +157,14 @@ async def generar_factura_dinamica(
         
         # Paso 2: Crear registro en la tabla invoices con la relación al customer
         # El trigger generará automáticamente el customer_number para el PDF
-        invoice_result = supabase_service.invoices.create_invoice(
-            invoice_number=request.invoice_info.invoice_number,
-            invoice_date=request.invoice_info.invoice_date,
-            customer_id=customer_id,  # FK a customers.id
-            user_id=user_id  # FK a auth.users.id (usuario autenticado)
+        invoice_result = await loop.run_in_executor(
+            None,
+            lambda: supabase_service.invoices.create_invoice(
+                invoice_number=request.invoice_info.invoice_number,
+                invoice_date=request.invoice_info.invoice_date,
+                customer_id=customer_id,
+                user_id=user_id
+            )
         )
         
         if not invoice_result['success']:
@@ -173,9 +181,12 @@ async def generar_factura_dinamica(
         # Paso 2.5: Persistir productos asociados a la factura
         # Guardar snapshot de los productos en el momento de la venta
         products_list = [p.model_dump() for p in request.products]
-        invoice_products_result = supabase_service.invoices.create_invoice_products(
-            invoice_id=invoice_id,
-            products_list=products_list
+        invoice_products_result = await loop.run_in_executor(
+            None,
+            lambda: supabase_service.invoices.create_invoice_products(
+                invoice_id=invoice_id,
+                products_list=products_list
+            )
         )
         
         if not invoice_products_result['success']:
@@ -195,12 +206,15 @@ async def generar_factura_dinamica(
         invoice_info_dict = request.invoice_info.model_dump()
         
         # Generar PDF dinámico
-        pdf_bytes = invoice_service.generar_factura_dinamica(
-            order_date=request.order_date,
-            order_number=request.order_number,
-            customer=customer_dict,
-            products=products_list,
-            invoice_info=invoice_info_dict
+        pdf_bytes = await loop.run_in_executor(
+            None,
+            lambda: invoice_service.generar_factura_dinamica(
+                order_date=request.order_date,
+                order_number=request.order_number,
+                customer=customer_dict,
+                products=products_list,
+                invoice_info=invoice_info_dict
+            )
         )
         
         # Preparar respuesta
@@ -245,7 +259,10 @@ async def obtener_factura_con_productos(
     """
     try:
         # Obtener factura con productos
-        result = supabase_service.invoices.get_invoice_with_products(invoice_id)
+        result = await asyncio.get_running_loop().run_in_executor(
+            None,
+            lambda: supabase_service.invoices.get_invoice_with_products(invoice_id)
+        )
         
         if not result['success']:
             raise HTTPException(
