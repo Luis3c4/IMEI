@@ -51,7 +51,7 @@ class BulkStatusResponse(BaseModel):
 
 
 @router.get("/", response_model=ProductsResponse)
-async def get_all_products():
+def get_all_products():
     """
     Obtiene todos los productos con sus variantes (JOIN)
     
@@ -80,7 +80,7 @@ async def get_all_products():
 
 
 @router.post("/", response_model=ProductCreateResponse)
-async def create_product(request: ProductCreateRequest):
+def create_product(request: ProductCreateRequest):
     """
     Crea un producto con variante e item de inventario.
 
@@ -121,7 +121,7 @@ async def create_product(request: ProductCreateRequest):
 
 
 @router.get("/health")
-async def products_health():
+def products_health():
     """
     Verifica el estado de la conexión a la base de datos
     """
@@ -132,7 +132,7 @@ async def products_health():
     }
 
 @router.post("/items/bulk-toggle-sold", response_model=BulkStatusResponse)
-async def bulk_toggle_items_sold(request: BulkToggleRequest):
+def bulk_toggle_items_sold(request: BulkToggleRequest):
     """
     Toggle entre available y sold para múltiples product_items
     Endpoint para manejar multiselección en el frontend
@@ -233,7 +233,7 @@ async def bulk_toggle_items_sold(request: BulkToggleRequest):
 
 
 @router.get("/inventory", response_model=ProductHierarchyResponse)
-async def get_products_inventory(
+def get_products_inventory(
     category: Optional[str] = Query(
         default=None,
         description="Filtrar por categoría (ej: IPHONE, MACBOOK, APPLE WATCH)"

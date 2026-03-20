@@ -1,5 +1,5 @@
 from typing import Dict, Any
-import requests
+import httpx
 import logging
 from app.config import settings
 from app.utils.parsers import normalize_keys
@@ -15,14 +15,14 @@ class DHRUService:
         self.api_key = settings.DHRU_API_KEY
         self.timeout = 60
     
-    def get_balance(self) -> Dict[str, Any]:
+    async def get_balance(self) -> Dict[str, Any]:
         """Obtiene balance de la cuenta"""
         try:
-            response = requests.get(
-                self.base_url,
-                params={'action': 'balance', 'key': self.api_key},
-                timeout=10
-            )
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(
+                    self.base_url,
+                    params={'action': 'balance', 'key': self.api_key}
+                )
             return {
                 'success': True,
                 'balance': float(response.text.strip())
@@ -30,19 +30,19 @@ class DHRUService:
         except Exception as e:
             return {'success': False, 'error': str(e)}
     
-    def query_device(self, service_id: str, imei: str, format: str = 'beta') -> Dict[str, Any]:
+    async def query_device(self, service_id: str, imei: str, format: str = 'beta') -> Dict[str, Any]:
         """Consulta información de dispositivo"""
         try:
-            response = requests.get(
-                self.base_url,
-                params={
-                    'format': format,
-                    'key': self.api_key,
-                    'imei': imei,
-                    'service': service_id
-                },
-                timeout=self.timeout
-            )
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.get(
+                    self.base_url,
+                    params={
+                        'format': format,
+                        'key': self.api_key,
+                        'imei': imei,
+                        'service': service_id
+                    }
+                )
             
             data = response.json()
             
@@ -63,19 +63,20 @@ class DHRUService:
                 'error': data.get('result', 'Error desconocido')
             }
             
-        except requests.Timeout:
+        except httpx.TimeoutException:
             return {'success': False, 'error': 'Timeout de 60 segundos excedido'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
-    def get_services(self) -> Dict[str, Any]:
+
+    async def get_services(self) -> Dict[str, Any]:
         """Obtiene lista de servicios disponibles"""
         try:
             logger.info(f"Consultando servicios DHRU: {self.base_url}")
-            response = requests.get(
-                self.base_url,
-                params={'action': 'services', 'key': self.api_key},
-                timeout=10
-            )
+            async with httpx.AsyncClient(timeout=10) as client:
+                response = await client.get(
+                    self.base_url,
+                    params={'action': 'services', 'key': self.api_key}
+                )
             
             # Log del status code
             logger.info(f"Status code: {response.status_code}")
@@ -141,35 +142,33 @@ class DHRUService:
                 'success': False,
                 'error': error_msg
             }
-        except requests.Timeout:
+        except httpx.TimeoutException:
             logger.error("Timeout al consultar servicios DHRU")
             return {'success': False, 'error': 'Timeout de 10 segundos excedido'}
-        except requests.RequestException as e:
+        except httpx.RequestError as e:
             logger.error(f"Error de conexión con DHRU: {str(e)}")
             return {'success': False, 'error': f'Error de conexión: {str(e)}'}
         except Exception as e:
             logger.error(f"Error inesperado: {str(e)}", exc_info=True)
             return {'success': False, 'error': f'Error inesperado: {str(e)}'}
 
-    def search_history(self, imei_or_order: str, format: str = 'beta') -> Dict[str, Any]:
+    async def search_history(self, imei_or_order: str, format: str = 'beta') -> Dict[str, Any]:
         """Busca en el historial de consultas"""
         try:
-            response = requests.get(
-                self.base_url,
-                params={
-                    'format': format,
-                    'action': 'history',
-                    'key': self.api_key,
-                    'imei': imei_or_order
-                },
-                timeout=30
-            )
-            data = response.json()
+            async with httpx.AsyncClient(timeout=30) as client:
+                response = await client.get(
+                    self.base_url,
+                    params={
+                        'format': format,
+                        'action': 'history',
+                        'key': self.api_key,
+                        'imei': imei_or_order
+                    }
+                )
             if format == 'beta' or format == 'json':
-                data = response.json()
                 return {
                     'success': True,
-                    'data': data,
+                    'data': response.json(),
                     'message': 'Historial obtenido'
                 }
             else:
@@ -177,7 +176,7 @@ class DHRUService:
                     'success': True,
                     'data': response.text,
                     'message': 'Historial obtenido'
-            }
+                }
         except Exception as e:
             return {'success': False, 'error': str(e)}
 

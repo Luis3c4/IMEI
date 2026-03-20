@@ -23,7 +23,7 @@ supabase_service = SupabaseService()
         500: {"model": ErrorResponse, "description": "Error del servidor"}
     }
 )
-async def list_customers(
+def list_customers(
     search: Optional[str] = Query(
         default=None,
         description="Filtrar por nombre, DNI o teléfono",
