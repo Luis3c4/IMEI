@@ -82,6 +82,7 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
         'color': None,
         'capacity': None,
         'ram': None,
+        'chip': None,
         'country': None,
         'full_model': None
     }
@@ -173,7 +174,24 @@ def parse_model_description(model_desc: str) -> Dict[str, Optional[str]]:
             desc_temp = re.sub(r'\s+', ' ', desc_temp).strip()
 
     desc = desc_temp
-    
+
+    # 2b. CHIP: Extraer CPU + GPU para MacBooks/Macs (ej: "10C CPU 8C GPU" → "10C CPU / 8C GPU")
+    if result['brand'] in ('MACBOOK', 'MAC'):
+        cpu_match = re.search(r'\b(\d+)C\s+CPU\b', desc, re.IGNORECASE)
+        gpu_match = re.search(r'\b(\d+C(?:/\d+C)?)\s+GPU\b', desc, re.IGNORECASE)
+        if cpu_match and gpu_match:
+            cpu_part = f"{cpu_match.group(1)}C CPU"
+            gpu_part = f"{gpu_match.group(1).upper()} GPU"
+            result['chip'] = f"{cpu_part} / {gpu_part}"
+            # Remove both tokens from desc
+            desc = re.sub(r'\b\d+C\s+CPU\b', '', desc, flags=re.IGNORECASE)
+            desc = re.sub(r'\b\d+C(?:/\d+C)?\s+GPU\b', '', desc, flags=re.IGNORECASE)
+            desc = re.sub(r'\s+', ' ', desc).strip()
+        elif gpu_match:
+            result['chip'] = f"{gpu_match.group(1).upper()} GPU"
+            desc = re.sub(r'\b\d+C(?:/\d+C)?\s+GPU\b', '', desc, flags=re.IGNORECASE)
+            desc = re.sub(r'\s+', ' ', desc).strip()
+
     # 3. PAÍS: Buscar después de guión o al final (ej: -USA, -CHINA)
     country_match = re.search(r'[-/]([A-Z]{2,}(?:\s+[A-Z]+)?)$', desc)
     if country_match:

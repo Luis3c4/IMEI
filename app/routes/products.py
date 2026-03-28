@@ -98,6 +98,7 @@ def create_product(request: ProductCreateRequest):
         product_name=request.product_name,
         color=request.color,
         capacity=request.capacity,
+        chip=request.chip,
         serial_number=request.serial_number,
         product_number=request.product_number,
     )

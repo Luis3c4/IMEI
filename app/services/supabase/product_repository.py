@@ -28,6 +28,7 @@ class ProductRepository(BaseSupabaseRepository):
         capacity: Optional[str],
         serial_number: str,
         product_number: str,
+        chip: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Crea un registro completo de inventario:
@@ -60,6 +61,7 @@ class ProductRepository(BaseSupabaseRepository):
         normalized_name = product_name.strip()
         normalized_color = _normalize_optional_variant_value(color)
         normalized_capacity = _normalize_optional_variant_value(capacity)
+        normalized_chip = _normalize_optional_variant_value(chip)
         normalized_serial = serial_number.strip().upper()
         normalized_product_number = product_number.strip().upper()
 
@@ -75,6 +77,7 @@ class ProductRepository(BaseSupabaseRepository):
             'full_model': normalized_name,
             'capacity': normalized_capacity,
             'ram': None,
+            'chip': normalized_chip,
         })
 
         if detected_price is None:
@@ -122,6 +125,11 @@ class ProductRepository(BaseSupabaseRepository):
             else:
                 variant_query = variant_query.is_('capacity', 'null')
 
+            if normalized_chip is not None:
+                variant_query = variant_query.eq('chip', normalized_chip)
+            else:
+                variant_query = variant_query.is_('chip', 'null')
+
             variant_response = variant_query.execute()
 
             if variant_response.data and len(variant_response.data) > 0:
@@ -140,6 +148,7 @@ class ProductRepository(BaseSupabaseRepository):
                     'product_id': product_id,
                     'color': normalized_color,
                     'capacity': normalized_capacity,
+                    'chip': normalized_chip,
                     'price': detected_price,
                 }).execute()
 
@@ -206,6 +215,7 @@ class ProductRepository(BaseSupabaseRepository):
                     id,
                     color,
                     capacity,
+                    chip,
                     price,
                     model_description,
                     product_items (
@@ -311,6 +321,7 @@ class ProductRepository(BaseSupabaseRepository):
             color = parsed_model.get('color') or None
             ram = parsed_model.get('ram') or None
             capacity = parsed_model.get('capacity') or None
+            chip = parsed_model.get('chip') or None
             
             # Combinar RAM y capacidad en un solo string si ambos existen
             if ram and capacity:
@@ -332,7 +343,12 @@ class ProductRepository(BaseSupabaseRepository):
                 variant_query = variant_query.eq('capacity', capacity_combined)
             else:
                 variant_query = variant_query.is_('capacity', 'null')
-            
+
+            if chip is not None:
+                variant_query = variant_query.eq('chip', chip)
+            else:
+                variant_query = variant_query.is_('chip', 'null')
+
             variant_response = variant_query.execute()
             
             if variant_response.data and len(variant_response.data) > 0:
@@ -358,6 +374,7 @@ class ProductRepository(BaseSupabaseRepository):
                     'product_id': product_id,
                     'color': color,
                     'capacity': capacity_combined,
+                    'chip': chip,
                     'price': product_price,
                     'model_description': device_info.get('Model_Description')
                 }

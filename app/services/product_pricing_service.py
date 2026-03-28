@@ -46,6 +46,7 @@ class ProductPricingService:
         full_model = parsed_model.get('full_model')
         capacity = parsed_model.get('capacity')
         ram = parsed_model.get('ram')
+        chip = parsed_model.get('chip')
         
         if not full_model:
             logger.warning("⚠️  No se proporcionó 'full_model' en parsed_model")
@@ -57,25 +58,30 @@ class ProductPricingService:
         # Manejo especial para Apple Watch: extraer tamaño del modelo
         capacity = self._extract_capacity_from_model(model_normalized, capacity)
         
-        # Combinar RAM y capacidad si ambos existen (para MacBooks)
-        combined_capacity = self._combine_capacity_and_ram(capacity, ram)
+        # Combinar RAM, capacidad y chip (para MacBooks)
+        combined_capacity = self._combine_capacity_ram_chip(capacity, ram, chip)
         
         # Buscar precio en la tabla
         price = self._find_price_in_table(model_normalized, combined_capacity)
         
         return price
     
-    def _combine_capacity_and_ram(self, capacity: Optional[str], ram: Optional[str]) -> Optional[str]:
+    def _combine_capacity_ram_chip(
+        self,
+        capacity: Optional[str],
+        ram: Optional[str],
+        chip: Optional[str],
+    ) -> Optional[str]:
         """
-        Combina RAM y capacidad en un solo string para búsqueda de precios
-        
-        Args:
-            capacity: Capacidad de almacenamiento (ej: "512GB")
-            ram: Memoria RAM (ej: "16GB")
-            
-        Returns:
-            String combinado (ej: "16GB/512GB") o solo capacidad si no hay RAM
+        Combina RAM, capacidad y chip en un solo string para búsqueda de precios.
+
+        Orden de prioridad (más específico primero):
+          - ram/capacity/chip  →  "16GB/512GB/10C CPU / 8C GPU"
+          - ram/capacity       →  "16GB/512GB"
+          - capacity           →  "512GB"
         """
+        if ram and capacity and chip:
+            return f"{ram}/{capacity}/{chip}"
         if ram and capacity:
             return f"{ram}/{capacity}"
         return capacity
@@ -166,18 +172,31 @@ class ProductPricingService:
         
         capacity_normalized = capacity.upper()
         
-        # Estrategia 1: Buscar por capacidad exacta (ejemplo: "16GB/512GB")
+        # Estrategia 1: Buscar por capacidad exacta (ejemplo: "16GB/512GB/10C CPU / 8C GPU")
         if capacity_normalized in price_table:
             price = price_table[capacity_normalized]
             logger.info(f"💰 Precio encontrado: {model} {capacity_normalized} = ${price}")
             return price
         
-        # Estrategia 2: Para capacidades combinadas (RAM/Almacenamiento), 
-        # intentar fallback a solo almacenamiento
-        if '/' in capacity_normalized:
-            parts = capacity_normalized.split('/')
-            storage_only = parts[-1]  # Última parte es almacenamiento
-            
+        # Estrategia 2: Para capacidades combinadas con chip (RAM/Almacenamiento/Chip),
+        # intentar fallback a RAM/Almacenamiento sin chip, luego solo almacenamiento.
+        parts = capacity_normalized.split('/')
+        if len(parts) >= 3:
+            # Tiene chip: intentar ram/storage sin chip
+            ram_storage = f"{parts[0]}/{parts[1]}"
+            if ram_storage in price_table:
+                price = price_table[ram_storage]
+                logger.info(f"💰 Precio fallback (sin chip): {model} {ram_storage} = ${price}")
+                return price
+            # Fallback a solo almacenamiento
+            storage_only = parts[1]
+            if storage_only in price_table:
+                price = price_table[storage_only]
+                logger.info(f"💰 Precio fallback (solo almacenamiento): {model} {storage_only} = ${price}")
+                return price
+        elif len(parts) == 2:
+            # Tiene ram/storage: intentar solo almacenamiento
+            storage_only = parts[-1]
             if storage_only in price_table:
                 price = price_table[storage_only]
                 logger.info(f"💰 Precio fallback (solo almacenamiento): {model} {storage_only} = ${price}")
