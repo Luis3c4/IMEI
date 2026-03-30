@@ -76,12 +76,19 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
 
     'MACBOOK AIR (13-INCH M5': {
         # Con chip específico
-        '16GB/256GB/10C CPU / 8C GPU':  999.0,
-        '16GB/256GB/10C CPU / 10C GPU': 1099.0,
-        '16GB/512GB/10C CPU / 8C GPU':  1199.0,
-        '16GB/512GB/10C CPU / 10C GPU': 1299.0,
-        '24GB/512GB/10C CPU / 10C GPU': 1399.0,
-        '24GB/1TB/10C CPU / 10C GPU':   1599.0,
+        '16GB/512GB/10C CPU / 8C GPU':  1099.0,
+        '16GB/512GB/10C CPU / 10C GPU': 1199.0, 
+        '16GB/1TB/10C CPU / 10C GPU': 1299.0,
+        '16GB/2TB/10C CPU / 10C GPU': 1699.0,
+        '16GB/4TB/10C CPU / 10C GPU': 2299.0,     
+        '24GB/512GB/10C CPU / 10C GPU': 1299.0,
+        '24GB/1TB/10C CPU / 10C GPU': 1499.0,
+        '24GB/2TB/10C CPU / 10C GPU': 1899.0,
+        '24GB/4TB/10C CPU / 10C GPU': 2499.0,
+        '32GB/512GB/10C CPU / 10C GPU': 1499.0,
+        '32GB/1TB/10C CPU / 10C GPU': 1699.0,
+        '32GB/2TB/10C CPU / 10C GPU': 2099.0,
+        '32GB/4TB/10C CPU / 10C GPU': 2699.0,
         # Fallback sin chip
         '16GB/512GB': 1199.0,
         '16GB/1TB': 1299.0,
@@ -112,11 +119,19 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
 
     'MACBOOK AIR (15-INCH M5': {
         # Con chip específico
-        '16GB/512GB/10C CPU / 8C GPU':  1299.0,
-        '16GB/512GB/10C CPU / 10C GPU': 1399.0,
+        '16GB/512GB/10C CPU / 10C GPU': 1299.0,
         '16GB/1TB/10C CPU / 10C GPU':   1499.0,
+        '16GB/2TB/10C CPU / 10C GPU':   1899.0,
+        '16GB/4TB/10C CPU / 10C GPU':   2499.0,
         '24GB/512GB/10C CPU / 10C GPU': 1499.0,
         '24GB/1TB/10C CPU / 10C GPU':   1699.0,
+        '24GB/2TB/10C CPU / 10C GPU':   2099.0,
+        '24GB/4TB/10C CPU / 10C GPU':   2699.0,
+        '32GB/512GB/10C CPU / 10C GPU': 1699.0,
+        '32GB/1TB/10C CPU / 10C GPU':   1899.0,
+        '32GB/2TB/10C CPU / 10C GPU':   2299.0,
+        '32GB/4TB/10C CPU / 10C GPU':   2899.0,
+
         # Fallback sin chip
         '16GB/512GB': 1299.0,
         '16GB/1TB': 1499.0,
