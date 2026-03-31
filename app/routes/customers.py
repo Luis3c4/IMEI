@@ -4,9 +4,10 @@ Customers Routes - Endpoints para gestión de clientes
 
 import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from app.schemas import CustomerListResponse, ErrorResponse
 from app.services.supabase_service import SupabaseService
+from app.middleware.auth_middleware import get_current_user_id
 
 logger = logging.getLogger(__name__)
 
@@ -30,10 +31,12 @@ def list_customers(
         max_length=100
     ),
     page: int = Query(default=1, ge=1, description="Número de página"),
-    page_size: int = Query(default=20, ge=1, le=100, description="Registros por página")
+    page_size: int = Query(default=20, ge=1, le=100, description="Registros por página"),
+    user_id: str = Depends(get_current_user_id)
 ):
     """
-    Retorna la lista paginada de clientes registrados.
+    Retorna la lista paginada de clientes registrados por el usuario autenticado
+    que además tengan al menos un producto registrado en sus facturas.
 
     **Parámetros opcionales:**
     - **search** (str): Texto libre para filtrar por nombre, DNI o teléfono.
@@ -44,7 +47,7 @@ def list_customers(
     - success, data, total, page, page_size, total_pages
     """
     try:
-        result = supabase_service.customers.get_all_customers(search=search, page=page, page_size=page_size)
+        result = supabase_service.customers.get_all_customers(search=search, page=page, page_size=page_size, user_id=user_id)
 
         if not result['success']:
             raise HTTPException(status_code=500, detail=result.get('error', 'Error al obtener clientes'))
