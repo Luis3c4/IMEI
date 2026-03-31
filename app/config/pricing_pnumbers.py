@@ -161,7 +161,7 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         'DEFAULT': 1099.0,
     },
     # MacBook Pro 14" M4 PRO/MAX
-    'MACBOOK PRO (14-INCH': {
+    'MACBOOK PRO (14-INCH M4': {
         # Con chip específico (PRO: 12C CPU / 16C GPU | MAX: 14C CPU / 30C GPU)
         '24GB/512GB/12C CPU / 16C GPU': 1999.0,
         '24GB/1TB/12C CPU / 16C GPU':   2399.0,
@@ -232,6 +232,7 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
 
     # MacBook Pro 14" M5
     'MACBOOK PRO (14-INCH M5': {
+        '16GB/512GB/10C CPU / 10C GPU': 1599.0,
         # M5 CHIP: 10C CPU / 10C GPU WITH 1TB STORAGE CONFIGURATION
         '16GB/1TB/10C CPU / 10C GPU': 1699.0,
         '24GB/1TB/10C CPU / 10C GPU': 1899.0,
@@ -281,10 +282,6 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         '48GB/8TB/18C CPU / 40C GPU': 5899.0,
         '64GB/8TB/18C CPU / 40C GPU': 6099.0,
         '128GB/8TB/18C CPU / 40C GPU': 6899.0,
-        # Fallback sin chip
-        '24GB/512GB': 2499.0,
-        '48GB/512GB': 2899.0,
-        '16GB/1TB': 2899.0,
         # Fallback por capacidad de almacenamiento solo
         '512GB': 2499.0,
         '1TB': 2899.0,
@@ -426,6 +423,64 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
 def get_all_models() -> list[str]:
     """Retorna lista de todos los modelos disponibles"""
     return list(APPLE_PRICING_USD.keys())
+
+
+def extract_macbook_variants(model_name: str) -> dict:
+    """
+    Parsea las claves compuestas de APPLE_PRICING_USD para un modelo MacBook y
+    retorna las capacidades RAM/almacenamiento válidas y los chips para cada una.
+
+    Formato de clave compuesta: "RAM/STORAGE/CHIP_A / CHIP_B"
+    Ejemplo: "16GB/256GB/10C CPU / 8C GPU" → capacity="16GB/256GB", chip="10C CPU / 8C GPU"
+
+    Returns:
+        {
+            "capacities": ["16GB/256GB", ...],
+            "chips_by_capacity": {"16GB/256GB": ["10C CPU / 8C GPU", ...], ...}
+        }
+    """
+    model_upper = model_name.upper().strip()
+
+    # Longest-prefix match: key más específico gana (igual que _find_price_in_table)
+    sorted_keys = sorted(APPLE_PRICING_USD.keys(), key=len, reverse=True)
+    matched_key = next(
+        (k for k in sorted_keys if k in model_upper or model_upper.startswith(k)),
+        None
+    )
+
+    if not matched_key:
+        return {"capacities": [], "chips_by_capacity": {}}
+
+    def _is_memory_size(s: str) -> bool:
+        """Verifica si el string es un tamaño de memoria válido (e.g. '16GB', '1TB')"""
+        u = s.upper()
+        return (u.endswith('GB') or u.endswith('TB')) and u[:-2].isdigit()
+
+    chips_by_capacity: Dict[str, list] = {}
+
+    for key in APPLE_PRICING_USD[matched_key]:
+        parts = key.split('/')
+        # Descartar claves de 1 parte: fallbacks por almacenamiento solo ("256GB", "DEFAULT")
+        if len(parts) < 2:
+            continue
+        # Verificar que los primeros dos segmentos son tamaños de memoria (p.ej. "16GB", "1TB")
+        if not (_is_memory_size(parts[0]) and _is_memory_size(parts[1])):
+            continue
+
+        capacity = f"{parts[0]}/{parts[1]}"
+        if capacity not in chips_by_capacity:
+            chips_by_capacity[capacity] = []
+
+        # Clave compuesta (4+ partes): extraer chip
+        if len(parts) >= 4:
+            chip = '/'.join(parts[2:]).strip()
+            if chip not in chips_by_capacity[capacity]:
+                chips_by_capacity[capacity].append(chip)
+
+    return {
+        "capacities": list(chips_by_capacity.keys()),
+        "chips_by_capacity": chips_by_capacity,
+    }
 
 
 def get_model_capacities(model: str) -> list[str]:

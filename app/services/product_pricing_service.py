@@ -84,6 +84,8 @@ class ProductPricingService:
             return f"{ram}/{capacity}/{chip}"
         if ram and capacity:
             return f"{ram}/{capacity}"
+        if capacity and chip:
+            return f"{capacity}/{chip}"
         return capacity
     
     def _extract_capacity_from_model(self, model: str, capacity: Optional[str]) -> Optional[str]:
