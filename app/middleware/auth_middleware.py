@@ -4,10 +4,17 @@ Validates Supabase JWT tokens and injects user_id into request context
 """
 
 import logging
+from dataclasses import dataclass
 from typing import Optional
 from fastapi import Request, HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from app.config import settings
+
+
+@dataclass
+class UserInfo:
+    user_id: str
+    role: str  # 'admin' | 'user'
 
 try:
     from supabase import create_client, Client
@@ -156,3 +163,46 @@ async def get_current_user_id(
             detail=f"Error al validar token: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+async def get_current_user(
+    request: Request,
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+) -> UserInfo:
+    """
+    Dependency de FastAPI que retorna un UserInfo con user_id y role.
+    El role se extrae de app_metadata.role del JWT de Supabase.
+    Si no está configurado, el default es 'user'.
+    """
+    user_id = await get_current_user_id(request, credentials)
+
+    try:
+        auth_client = _get_auth_client()
+        response = auth_client.auth.get_user(jwt=credentials.credentials)
+        role: str = "user"
+        if response and response.user:
+            app_metadata = response.user.app_metadata or {}
+            role = app_metadata.get("role", "user")
+            if role not in ("admin", "user"):
+                role = "user"
+    except Exception:
+        role = "user"
+
+    logger.info(f"✅ Usuario {user_id} con rol '{role}'")
+    return UserInfo(user_id=user_id, role=role)
+
+
+async def require_admin(
+    user_info: UserInfo = Depends(get_current_user)
+) -> UserInfo:
+    """
+    Dependency de FastAPI que requiere rol 'admin'.
+    Lanza 403 si el usuario autenticado no es admin.
+    """
+    if user_info.role != "admin":
+        logger.warning(f"⛔ Acceso denegado para usuario {user_info.user_id} (rol: {user_info.role})")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado: se requiere rol de administrador"
+        )
+    return user_info
