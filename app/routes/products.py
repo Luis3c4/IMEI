@@ -7,6 +7,7 @@ from typing import List, Dict, Any , Optional
 from pydantic import BaseModel
 from app.services.supabase_service import supabase_service
 from app.schemas import ProductHierarchyResponse, ProductCreateRequest, ProductCreateResponse, ProductCreateData
+from app.config.pricing_pnumbers import extract_macbook_variants
 import logging
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,12 @@ class BulkStatusResponse(BaseModel):
     failed: int
     results: List[Dict[str, Any]]
     message: Optional[str] = None
+
+
+class MacbookVariantsResponse(BaseModel):
+    """Capacidades y chips válidos para un modelo MacBook"""
+    capacities: List[str]
+    chips_by_capacity: Dict[str, List[str]]
 
 
 @router.get("/", response_model=ProductsResponse)
@@ -98,6 +105,7 @@ def create_product(request: ProductCreateRequest):
         product_name=request.product_name,
         color=request.color,
         capacity=request.capacity,
+        chip=request.chip,
         serial_number=request.serial_number,
         product_number=request.product_number,
     )
@@ -119,6 +127,21 @@ def create_product(request: ProductCreateRequest):
         message=result.get('message', 'Producto creado correctamente')
     )
 
+
+@router.get("/macbook-variants", response_model=MacbookVariantsResponse)
+def get_macbook_variants(model: str = Query(..., description="Nombre del modelo MacBook")):
+    """
+    Retorna las capacidades RAM/almacenamiento válidas y los chips disponibles
+    para cada combinación, derivados de la tabla de precios oficial.
+
+    Usar para poblar los selectores de capacidad y CPU/GPU en el formulario
+    de registro de productos MacBook.
+    """
+    result = extract_macbook_variants(model)
+    return MacbookVariantsResponse(
+        capacities=result["capacities"],
+        chips_by_capacity=result["chips_by_capacity"],
+    )
 
 @router.get("/health")
 def products_health():

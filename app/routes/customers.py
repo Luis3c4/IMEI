@@ -4,9 +4,10 @@ Customers Routes - Endpoints para gestión de clientes
 
 import logging
 from typing import Optional
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from app.schemas import CustomerListResponse, ErrorResponse
 from app.services.supabase_service import SupabaseService
+from app.middleware.auth_middleware import get_current_user, UserInfo
 
 logger = logging.getLogger(__name__)
 
@@ -30,21 +31,18 @@ def list_customers(
         max_length=100
     ),
     page: int = Query(default=1, ge=1, description="Número de página"),
-    page_size: int = Query(default=20, ge=1, le=100, description="Registros por página")
+    page_size: int = Query(default=20, ge=1, le=100, description="Registros por página"),
+    current_user: UserInfo = Depends(get_current_user)
 ):
     """
-    Retorna la lista paginada de clientes registrados.
-
-    **Parámetros opcionales:**
-    - **search** (str): Texto libre para filtrar por nombre, DNI o teléfono.
-    - **page** (int): Número de página (default 1).
-    - **page_size** (int): Registros por página, máximo 100 (default 20).
-
-    **Respuesta:**
-    - success, data, total, page, page_size, total_pages
+    Retorna la lista paginada de clientes.
+    - Rol **user**: solo clientes que tengan al menos una factura del usuario autenticado con producto registrado.
+    - Rol **admin**: todos los clientes de todos los usuarios con producto registrado.
     """
     try:
-        result = supabase_service.customers.get_all_customers(search=search, page=page, page_size=page_size)
+        # Admin ve todos; user solo los suyos
+        filter_user_id = None if current_user.role == "admin" else current_user.user_id
+        result = supabase_service.customers.get_all_customers(search=search, page=page, page_size=page_size, user_id=filter_user_id)
 
         if not result['success']:
             raise HTTPException(status_code=500, detail=result.get('error', 'Error al obtener clientes'))

@@ -58,6 +58,13 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     
     # MacBook Air M4
     'MACBOOK AIR (13-INCH M4': {
+        # Con chip específico (10C CPU / 8C GPU o 10C CPU / 10C GPU)
+        '16GB/256GB/10C CPU / 8C GPU':  999.0,
+        '16GB/256GB/10C CPU / 10C GPU': 1099.0,
+        '16GB/512GB/10C CPU / 8C GPU':  1199.0,
+        '16GB/512GB/10C CPU / 10C GPU': 1299.0,
+        '24GB/512GB/10C CPU / 10C GPU': 1499.0,
+        # Fallback sin chip
         '16GB/256GB': 999.0,
         '16GB/512GB': 1199.0,
         '24GB/512GB': 1399.0,
@@ -68,6 +75,21 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     },
 
     'MACBOOK AIR (13-INCH M5': {
+        # Con chip específico
+        '16GB/512GB/10C CPU / 8C GPU':  1099.0,
+        '16GB/512GB/10C CPU / 10C GPU': 1199.0, 
+        '16GB/1TB/10C CPU / 10C GPU': 1299.0,
+        '16GB/2TB/10C CPU / 10C GPU': 1699.0,
+        '16GB/4TB/10C CPU / 10C GPU': 2299.0,     
+        '24GB/512GB/10C CPU / 10C GPU': 1299.0,
+        '24GB/1TB/10C CPU / 10C GPU': 1499.0,
+        '24GB/2TB/10C CPU / 10C GPU': 1899.0,
+        '24GB/4TB/10C CPU / 10C GPU': 2499.0,
+        '32GB/512GB/10C CPU / 10C GPU': 1499.0,
+        '32GB/1TB/10C CPU / 10C GPU': 1699.0,
+        '32GB/2TB/10C CPU / 10C GPU': 2099.0,
+        '32GB/4TB/10C CPU / 10C GPU': 2699.0,
+        # Fallback sin chip
         '16GB/512GB': 1199.0,
         '16GB/1TB': 1299.0,
         '24GB/512GB': 1299.0,
@@ -79,6 +101,13 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     },
 
     'MACBOOK AIR (15-INCH M4': {
+        # Con chip específico
+        '16GB/256GB/10C CPU / 8C GPU':  1199.0,
+        '16GB/256GB/10C CPU / 10C GPU': 1299.0,
+        '16GB/512GB/10C CPU / 8C GPU':  1399.0,
+        '16GB/512GB/10C CPU / 10C GPU': 1499.0,
+        '24GB/512GB/10C CPU / 10C GPU': 1699.0,
+        # Fallback sin chip
         '16GB/256GB': 1199.0,
         '16GB/512GB': 1399.0,
         '24GB/512GB': 1599.0,
@@ -89,6 +118,21 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     },
 
     'MACBOOK AIR (15-INCH M5': {
+        # Con chip específico
+        '16GB/512GB/10C CPU / 10C GPU': 1299.0,
+        '16GB/1TB/10C CPU / 10C GPU':   1499.0,
+        '16GB/2TB/10C CPU / 10C GPU':   1899.0,
+        '16GB/4TB/10C CPU / 10C GPU':   2499.0,
+        '24GB/512GB/10C CPU / 10C GPU': 1499.0,
+        '24GB/1TB/10C CPU / 10C GPU':   1699.0,
+        '24GB/2TB/10C CPU / 10C GPU':   2099.0,
+        '24GB/4TB/10C CPU / 10C GPU':   2699.0,
+        '32GB/512GB/10C CPU / 10C GPU': 1699.0,
+        '32GB/1TB/10C CPU / 10C GPU':   1899.0,
+        '32GB/2TB/10C CPU / 10C GPU':   2299.0,
+        '32GB/4TB/10C CPU / 10C GPU':   2899.0,
+
+        # Fallback sin chip
         '16GB/512GB': 1299.0,
         '16GB/1TB': 1499.0,
         '24GB/512GB': 1499.0,
@@ -117,7 +161,13 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         'DEFAULT': 1099.0,
     },
     # MacBook Pro 14" M4 PRO/MAX
-    'MACBOOK PRO (14-INCH': {   
+    'MACBOOK PRO (14-INCH M4': {
+        # Con chip específico (PRO: 12C CPU / 16C GPU | MAX: 14C CPU / 30C GPU)
+        '24GB/512GB/12C CPU / 16C GPU': 1999.0,
+        '24GB/1TB/12C CPU / 16C GPU':   2399.0,
+        '36GB/1TB/14C CPU / 30C GPU':   2399.0,
+        '64GB/1TB/14C CPU / 30C GPU':   2799.0,
+        # Fallback sin chip
         '24GB/512GB': 1999.0,
         '24GB/1TB': 2399.0,
         '36GB/1TB': 2399.0,
@@ -125,9 +175,53 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         '512GB': 1599.0,
         '1TB': 1999.0,
     },
-    
+
     # MacBook Pro 16" M4 PRO/MAX
-    'MACBOOK PRO (16-INCH': {
+    'MACBOOK PRO (16-INCH M4': {
+        # Con chip específico (PRO: 12C CPU / 16C GPU or 20C GPU | MAX: 14C CPU / 32C GPU or 40C GPU)
+        '24GB/512GB/12C CPU / 16C GPU': 2499.0,
+        '48GB/512GB/16C CPU / 40C GPU': 2899.0,
+        '16GB/1TB/12C CPU / 16C GPU':   2899.0,
+        # Fallback sin chip
+        '24GB/512GB': 2499.0,
+        '48GB/512GB': 2899.0,
+        '16GB/1TB': 2899.0,
+        # Fallback por capacidad de almacenamiento solo
+        '512GB': 2499.0,
+        '1TB': 2899.0,
+    },
+
+    # MacBook Pro 16" M5 PRO/MAX
+    'MACBOOK PRO (16-INCH M5': {
+        # M5 PRO CHIP: 18C CPU / 20C GPU WITH 1TB STORAGE CONFIGURATION
+        '24GB/1TB/18C CPU / 20C GPU': 2699.0,
+        '48GB/1TB/18C CPU / 20C GPU': 3099.0,
+        '64GB/1TB/18C CPU / 20C GPU': 3299.0,
+        # M5 PRO CHIP: 18C CPU / 20C GPU WITH 2TB STORAGE CONFIGURATION
+        '24GB/2TB/18C CPU / 20C GPU': 3099.0,
+        '48GB/2TB/18C CPU / 20C GPU': 3499.0,
+        '64GB/2TB/18C CPU / 20C GPU': 3699.0,
+        # M5 PRO CHIP: 18C CPU / 20C GPU WITH 4TB STORAGE CONFIGURATION
+        '24GB/4TB/18C CPU / 20C GPU': 3699.0,
+        '48GB/4TB/18C CPU / 20C GPU': 4099.0,
+        '64GB/4TB/18C CPU / 20C GPU': 4299.0,
+        #M5 MAX CHIP: 18C CPU / 32C GPU WITH STORAGE CONFIGURATIONS
+        '36GB/2TB/18C CPU / 32C GPU': 3899.0,
+        '36GB/4TB/18C CPU / 32C GPU': 4499.0,
+        '36GB/8TB/18C CPU / 32C GPU': 5699.0,
+        #M5 MAX CHIP: 18C CPU / 40C GPU WITH 2TB STORAGE CONFIGURATION
+        '48GB/2TB/18C CPU / 40C GPU': 4399.0,
+        '64GB/2TB/18C CPU / 40C GPU': 4599.0,
+        '128GB/2TB/18C CPU / 40C GPU': 5399.0,
+        #M5 MAX CHIP: 18C CPU / 40C GPU WITH 4TB STORAGE CONFIGURATION
+        '48GB/4TB/18C CPU / 40C GPU': 4999.0,
+        '64GB/4TB/18C CPU / 40C GPU': 5199.0,
+        '128GB/4TB/18C CPU / 40C GPU': 5999.0,
+        #M5 MAX CHIP: 18C CPU / 40C GPU WITH 8TB STORAGE CONFIGURATION
+        '48GB/8TB/18C CPU / 40C GPU': 6199.0,
+        '64GB/8TB/18C CPU / 40C GPU': 6399.0,
+        '128GB/8TB/18C CPU / 40C GPU': 7199.0,
+        # Fallback sin chip
         '24GB/512GB': 2499.0,
         '48GB/512GB': 2899.0,
         '16GB/1TB': 2899.0,
@@ -137,13 +231,60 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     },
 
     # MacBook Pro 14" M5
-    'MACBOOK PRO (14-INCH M5)': {   
-        '16GB/512GB': 1599.0,
-        '16GB/1TB': 1799.0,
-        '24GB/1TB': 1999.0,
+    'MACBOOK PRO (14-INCH M5': {
+        '16GB/512GB/10C CPU / 10C GPU': 1599.0,
+        # M5 CHIP: 10C CPU / 10C GPU WITH 1TB STORAGE CONFIGURATION
+        '16GB/1TB/10C CPU / 10C GPU': 1699.0,
+        '24GB/1TB/10C CPU / 10C GPU': 1899.0,
+        '34GB/1TB/10C CPU / 10C GPU': 2099.0,
+        # M5 CHIP: 10C CPU / 10C GPU WITH 2TB STORAGE CONFIGURATION
+        '16GB/2TB/10C CPU / 10C GPU': 2099.0,
+        '24GB/2TB/10C CPU / 10C GPU': 2299.0,
+        '34GB/2TB/10C CPU / 10C GPU': 2499.0,
+        # M5 CHIP: 10C CPU / 10C GPU WITH 4TB STORAGE CONFIGURATION
+        '16GB/4TB/10C CPU / 10C GPU': 2699.0,
+        '24GB/4TB/10C CPU / 10C GPU': 2899.0,
+        '34GB/4TB/10C CPU / 10C GPU': 3099.0,
+        # M5 PRO CHIP: 15C CPU / 16C GPU WITH 1TB STORAGE CONFIGURATION
+        '24GB/1TB/15C CPU / 16C GPU': 2199.0,
+        '48GB/1TB/15C CPU / 16C GPU': 2599.0,
+        # M5 PRO CHIP: 15C CPU / 16C GPU WITH 2TB STORAGE CONFIGURATION
+        '24GB/2TB/15C CPU / 16C GPU': 2599.0,
+        '48GB/2TB/15C CPU / 16C GPU': 2999.0,
+        # M5 PRO CHIP: 15C CPU / 16C GPU WITH 4TB STORAGE CONFIGURATION
+        '24GB/4TB/15C CPU / 16C GPU': 3199.0,
+        '48GB/4TB/15C CPU / 16C GPU': 3599.0,  
+        # M5 PRO CHIP: 18C CPU / 20C GPU WITH 1TB STORAGE CONFIGURATION
+        '24GB/1TB/18C CPU / 20C GPU': 2399.0,
+        '48GB/1TB/18C CPU / 20C GPU': 2799.0,
+        '64GB/1TB/18C CPU / 20C GPU': 2999.0,
+        # M5 PRO CHIP: 18C CPU / 20C GPU WITH 2TB STORAGE CONFIGURATION
+        '24GB/2TB/18C CPU / 20C GPU': 2799.0,
+        '48GB/2TB/18C CPU / 20C GPU': 3199.0,
+        '64GB/2TB/18C CPU / 20C GPU': 3399.0,
+        # M5 PRO CHIP: 18C CPU / 20C GPU WITH 4TB STORAGE CONFIGURATION
+        '24GB/4TB/18C CPU / 20C GPU': 3399.0,
+        '48GB/4TB/18C CPU / 20C GPU': 3799.0,
+        '64GB/4TB/18C CPU / 20C GPU': 3999.0,
+        #M5 MAX CHIP: 18C CPU / 32C GPU WITH STORAGE CONFIGURATIONS
+        '36GB/2TB/18C CPU / 32C GPU': 3599.0,
+        '36GB/4TB/18C CPU / 32C GPU': 4199.0,
+        '36GB/8TB/18C CPU / 32C GPU': 5399.0,
+        #M5 MAX CHIP: 18C CPU / 40C GPU WITH 2TB STORAGE CONFIGURATION
+        '48GB/2TB/18C CPU / 40C GPU': 4099.0,
+        '64GB/2TB/18C CPU / 40C GPU': 4299.0,
+        '128GB/2TB/18C CPU / 40C GPU': 5099.0,
+        #M5 MAX CHIP: 18C CPU / 40C GPU WITH 4TB STORAGE CONFIGURATION
+        '48GB/4TB/18C CPU / 40C GPU': 4699.0,
+        '64GB/4TB/18C CPU / 40C GPU': 4899.0,
+        '128GB/4TB/18C CPU / 40C GPU': 5699.0,
+        #M5 MAX CHIP: 18C CPU / 40C GPU WITH 8TB STORAGE CONFIGURATION
+        '48GB/8TB/18C CPU / 40C GPU': 5899.0,
+        '64GB/8TB/18C CPU / 40C GPU': 6099.0,
+        '128GB/8TB/18C CPU / 40C GPU': 6899.0,
         # Fallback por capacidad de almacenamiento solo
-        '512GB': 1599.0,
-        '1TB': 1999.0,
+        '512GB': 2499.0,
+        '1TB': 2899.0,
     },
     
     # ============================================================
@@ -282,6 +423,64 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
 def get_all_models() -> list[str]:
     """Retorna lista de todos los modelos disponibles"""
     return list(APPLE_PRICING_USD.keys())
+
+
+def extract_macbook_variants(model_name: str) -> dict:
+    """
+    Parsea las claves compuestas de APPLE_PRICING_USD para un modelo MacBook y
+    retorna las capacidades RAM/almacenamiento válidas y los chips para cada una.
+
+    Formato de clave compuesta: "RAM/STORAGE/CHIP_A / CHIP_B"
+    Ejemplo: "16GB/256GB/10C CPU / 8C GPU" → capacity="16GB/256GB", chip="10C CPU / 8C GPU"
+
+    Returns:
+        {
+            "capacities": ["16GB/256GB", ...],
+            "chips_by_capacity": {"16GB/256GB": ["10C CPU / 8C GPU", ...], ...}
+        }
+    """
+    model_upper = model_name.upper().strip()
+
+    # Longest-prefix match: key más específico gana (igual que _find_price_in_table)
+    sorted_keys = sorted(APPLE_PRICING_USD.keys(), key=len, reverse=True)
+    matched_key = next(
+        (k for k in sorted_keys if k in model_upper or model_upper.startswith(k)),
+        None
+    )
+
+    if not matched_key:
+        return {"capacities": [], "chips_by_capacity": {}}
+
+    def _is_memory_size(s: str) -> bool:
+        """Verifica si el string es un tamaño de memoria válido (e.g. '16GB', '1TB')"""
+        u = s.upper()
+        return (u.endswith('GB') or u.endswith('TB')) and u[:-2].isdigit()
+
+    chips_by_capacity: Dict[str, list] = {}
+
+    for key in APPLE_PRICING_USD[matched_key]:
+        parts = key.split('/')
+        # Descartar claves de 1 parte: fallbacks por almacenamiento solo ("256GB", "DEFAULT")
+        if len(parts) < 2:
+            continue
+        # Verificar que los primeros dos segmentos son tamaños de memoria (p.ej. "16GB", "1TB")
+        if not (_is_memory_size(parts[0]) and _is_memory_size(parts[1])):
+            continue
+
+        capacity = f"{parts[0]}/{parts[1]}"
+        if capacity not in chips_by_capacity:
+            chips_by_capacity[capacity] = []
+
+        # Clave compuesta (4+ partes): extraer chip
+        if len(parts) >= 4:
+            chip = '/'.join(parts[2:]).strip()
+            if chip not in chips_by_capacity[capacity]:
+                chips_by_capacity[capacity].append(chip)
+
+    return {
+        "capacities": list(chips_by_capacity.keys()),
+        "chips_by_capacity": chips_by_capacity,
+    }
 
 
 def get_model_capacities(model: str) -> list[str]:

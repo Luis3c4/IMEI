@@ -28,6 +28,7 @@ class ProductRepository(BaseSupabaseRepository):
         capacity: Optional[str],
         serial_number: str,
         product_number: str,
+        chip: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Crea un registro completo de inventario:
@@ -60,6 +61,7 @@ class ProductRepository(BaseSupabaseRepository):
         normalized_name = product_name.strip()
         normalized_color = _normalize_optional_variant_value(color)
         normalized_capacity = _normalize_optional_variant_value(capacity)
+        normalized_chip = _normalize_optional_variant_value(chip)
         normalized_serial = serial_number.strip().upper()
         normalized_product_number = product_number.strip().upper()
 
@@ -75,6 +77,7 @@ class ProductRepository(BaseSupabaseRepository):
             'full_model': normalized_name,
             'capacity': normalized_capacity,
             'ram': None,
+            'chip': normalized_chip,
         })
 
         if detected_price is None:
@@ -108,38 +111,62 @@ class ProductRepository(BaseSupabaseRepository):
                 product_id = new_product_data['id']
 
             # 2) Buscar o crear variante
-            variant_query = self.client.table('product_variants').select('id, price').eq(
-                'product_id', product_id
+            # Helper para aplicar filtros de color y capacity en una query
+            def _apply_color_capacity_filters(q):
+                if normalized_color is not None:
+                    q = q.eq('color', normalized_color)
+                else:
+                    q = q.is_('color', 'null')
+                if normalized_capacity is not None:
+                    q = q.eq('capacity', normalized_capacity)
+                else:
+                    q = q.is_('capacity', 'null')
+                return q
+
+            # Búsqueda exacta: (product_id, color, capacity, chip)
+            variant_query = _apply_color_capacity_filters(
+                self.client.table('product_variants').select('id, price').eq('product_id', product_id)
             )
-
-            if normalized_color is not None:
-                variant_query = variant_query.eq('color', normalized_color)
+            if normalized_chip is not None:
+                variant_query = variant_query.eq('chip', normalized_chip)
             else:
-                variant_query = variant_query.is_('color', 'null')
-
-            if normalized_capacity is not None:
-                variant_query = variant_query.eq('capacity', normalized_capacity)
-            else:
-                variant_query = variant_query.is_('capacity', 'null')
+                variant_query = variant_query.is_('chip', 'null')
 
             variant_response = variant_query.execute()
+
+            # Si no encontró coincidencia exacta y se proporcionó chip,
+            # buscar si existe la variante sin chip (chip=NULL) para actualizarla
+            # en lugar de crear un duplicado
+            upgrade_chip = False
+            if (not variant_response.data or len(variant_response.data) == 0) and normalized_chip is not None:
+                fallback_query = _apply_color_capacity_filters(
+                    self.client.table('product_variants').select('id, price').eq('product_id', product_id)
+                ).is_('chip', 'null')
+                fallback_response = fallback_query.execute()
+                if fallback_response.data and len(fallback_response.data) > 0:
+                    variant_response = fallback_response
+                    upgrade_chip = True
 
             if variant_response.data and len(variant_response.data) > 0:
                 variant_data = variant_response.data[0]
                 assert isinstance(variant_data, dict)
                 variant_id = variant_data['id']
 
-                # Mantener precio actualizado al último registro manual
+                # Actualizar chip si la variante existente no lo tenía
+                update_fields = {}
+                if upgrade_chip:
+                    update_fields['chip'] = normalized_chip
                 current_price = variant_data.get('price')
                 if current_price != detected_price:
-                    self.client.table('product_variants').update({
-                        'price': detected_price
-                    }).eq('id', variant_id).execute()
+                    update_fields['price'] = detected_price
+                if update_fields:
+                    self.client.table('product_variants').update(update_fields).eq('id', variant_id).execute()
             else:
                 new_variant = self.client.table('product_variants').insert({
                     'product_id': product_id,
                     'color': normalized_color,
                     'capacity': normalized_capacity,
+                    'chip': normalized_chip,
                     'price': detected_price,
                 }).execute()
 
@@ -206,6 +233,7 @@ class ProductRepository(BaseSupabaseRepository):
                     id,
                     color,
                     capacity,
+                    chip,
                     price,
                     model_description,
                     product_items (
@@ -311,6 +339,7 @@ class ProductRepository(BaseSupabaseRepository):
             color = parsed_model.get('color') or None
             ram = parsed_model.get('ram') or None
             capacity = parsed_model.get('capacity') or None
+            chip = parsed_model.get('chip') or None
             
             # Combinar RAM y capacidad en un solo string si ambos existen
             if ram and capacity:
@@ -332,7 +361,12 @@ class ProductRepository(BaseSupabaseRepository):
                 variant_query = variant_query.eq('capacity', capacity_combined)
             else:
                 variant_query = variant_query.is_('capacity', 'null')
-            
+
+            if chip is not None:
+                variant_query = variant_query.eq('chip', chip)
+            else:
+                variant_query = variant_query.is_('chip', 'null')
+
             variant_response = variant_query.execute()
             
             if variant_response.data and len(variant_response.data) > 0:
@@ -358,6 +392,7 @@ class ProductRepository(BaseSupabaseRepository):
                     'product_id': product_id,
                     'color': color,
                     'capacity': capacity_combined,
+                    'chip': chip,
                     'price': product_price,
                     'model_description': device_info.get('Model_Description')
                 }

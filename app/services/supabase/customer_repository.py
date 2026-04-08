@@ -201,14 +201,17 @@ class CustomerRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error obteniendo datos de RENIEC del cliente: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_all_customers(self, search: Optional[str] = None, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
+    def get_all_customers(self, search: Optional[str] = None, page: int = 1, page_size: int = 20, user_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Devuelve la lista paginada de clientes ordenados por índice descendente.
+        Si se proporciona user_id, solo devuelve clientes que tengan al menos
+        una factura del usuario indicado con al menos un producto registrado.
         
         Args:
             search: Texto opcional para filtrar por nombre, DNI o teléfono.
             page: Número de página (1-based, default 1).
             page_size: Registros por página (default 20).
+            user_id: UUID del usuario autenticado. Si se proporciona, filtra por sus facturas.
             
         Returns:
             Dict con success, data (lista), total, page, page_size, total_pages o error
@@ -217,11 +220,22 @@ class CustomerRepository(BaseSupabaseRepository):
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
 
         try:
-            query = self.client.table('customers').select(
-                'id, name, dni, phone, created_at, first_name, first_last_name, second_last_name,'
-                'invoices(invoice_products(products(name)))',
-                count=CountMethod.exact
-            ).order('id', desc=True)
+            if user_id:
+                # !inner join: solo clientes con facturas del usuario que tienen productos
+                select_fields = (
+                    'id, name, dni, phone, created_at, first_name, first_last_name, second_last_name,'
+                    'invoices!inner(invoice_products!inner(products(name)))'
+                )
+                query = self.client.table('customers').select(
+                    select_fields,
+                    count=CountMethod.exact
+                ).eq('invoices.user_id', user_id).order('id', desc=True)
+            else:
+                query = self.client.table('customers').select(
+                    'id, name, dni, phone, created_at, first_name, first_last_name, second_last_name,'
+                    'invoices(invoice_products(products(name)))',
+                    count=CountMethod.exact
+                ).order('id', desc=True)
 
             # Filtro server-side con ilike multi-columna
             if search:
