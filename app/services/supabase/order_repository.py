@@ -50,7 +50,6 @@ class OrderRepository(BaseSupabaseRepository):
                 {
                     "order_id": order_id,
                     "product_id": p["product_id"],
-                    "variant_id": p.get("variant_id"),
                     "label": p["label"],
                     "unit_price": p.get("unit_price", 0),
                 }

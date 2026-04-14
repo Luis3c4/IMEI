@@ -372,7 +372,6 @@ class HealthResponse(BaseModel):
 class OrderProductCreate(BaseModel):
     """Producto de interés dentro de un pedido"""
     product_id: int
-    variant_id: Optional[int] = None
     label: str
     unit_price: float = 0.0
 
@@ -395,9 +394,7 @@ class OrderProductResponse(BaseModel):
     """Producto dentro de un pedido (respuesta)"""
     id: int
     product_id: int
-    variant_id: Optional[int] = None
     label: str
-    unit_price: float
 
 
 class OrderResponse(BaseModel):

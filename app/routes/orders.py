@@ -40,9 +40,7 @@ def _serialize(o: dict) -> OrderResponse:
             OrderProductResponse(
                 id=p["id"],
                 product_id=p["product_id"],
-                variant_id=p.get("variant_id"),
                 label=p["label"],
-                unit_price=float(p.get("unit_price", 0)),
             )
             for p in prods
         ],
