@@ -26,7 +26,8 @@ from .supabase import (
     DeviceRepository,
     ProductRepository,
     CustomerRepository,
-    InvoiceRepository
+    InvoiceRepository,
+    OrderRepository,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,6 +53,7 @@ class SupabaseService:
         self.products = ProductRepository()
         self.customers = CustomerRepository()
         self.invoices = InvoiceRepository()
+        self.orders = OrderRepository()
         
         logger.info("✅ SupabaseService inicializado con repositorios modulares")
     

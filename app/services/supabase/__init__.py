@@ -17,6 +17,7 @@ from .device_repository import DeviceRepository
 from .product_repository import ProductRepository
 from .customer_repository import CustomerRepository
 from .invoice_repository import InvoiceRepository
+from .order_repository import OrderRepository
 
 __all__ = [
     'BaseSupabaseRepository',
@@ -24,4 +25,5 @@ __all__ = [
     'ProductRepository',
     'CustomerRepository',
     'InvoiceRepository',
+    'OrderRepository',
 ]
