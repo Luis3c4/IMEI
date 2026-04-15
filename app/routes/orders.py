@@ -7,6 +7,7 @@ DELETE /api/orders/{order_id}
 """
 
 import logging
+from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, HTTPException, status
 from app.schemas import (
     OrderCreate,
@@ -47,11 +48,28 @@ def _serialize(o: dict) -> OrderResponse:
     )
 
 
+_COMPLETED_TTL = timedelta(hours=24)
+
+
 @router.get("/", response_model=list[OrderResponse])
 async def get_orders():
     try:
         rows = supabase_service.orders.get_all_orders()
-        return [_serialize(r) for r in rows]
+        cutoff = datetime.now(timezone.utc) - _COMPLETED_TTL
+        visible = []
+        for r in rows:
+            if r.get("phase") == "completado":
+                raw_ts = r.get("updated_at", "")
+                try:
+                    dt = datetime.fromisoformat(str(raw_ts).replace("Z", "+00:00"))
+                    if dt.tzinfo is None:
+                        dt = dt.replace(tzinfo=timezone.utc)
+                    if dt < cutoff:
+                        continue  # ocultar, no eliminar
+                except (ValueError, AttributeError):
+                    pass
+            visible.append(r)
+        return [_serialize(r) for r in visible]
     except Exception as e:
         logger.error(f"Error al obtener pedidos: {e}")
         raise HTTPException(status_code=500, detail=str(e))
