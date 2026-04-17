@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class InvoiceRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con facturas"""
     
-    def create_invoice(self, invoice_number: str, invoice_date: str, customer_id: Optional[int] = None, user_id: Optional[str] = None) -> Dict[str, Any]:
+    async def create_invoice(self, invoice_number: str, invoice_date: str, customer_id: Optional[int] = None, user_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Crea una nueva factura en la base de datos.
         El customer_number se genera automáticamente en la BD mediante trigger.
@@ -27,7 +27,8 @@ class InvoiceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (incluyendo customer_number generado automáticamente) o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
@@ -45,7 +46,7 @@ class InvoiceRepository(BaseSupabaseRepository):
             if user_id is not None:
                 invoice_data['user_id'] = user_id
             
-            response = self.client.table('invoices').insert(invoice_data).execute()
+            response = await client.table('invoices').insert(invoice_data).execute()
             
             if not response.data:
                 return {'success': False, 'error': 'No se pudo crear la factura'}
@@ -62,7 +63,7 @@ class InvoiceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error creando factura: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_invoice_by_number(self, invoice_number: str) -> Dict[str, Any]:
+    async def get_invoice_by_number(self, invoice_number: str) -> Dict[str, Any]:
         """
         Busca una factura por su número (identificador único).
         
@@ -72,11 +73,12 @@ class InvoiceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
-            response = self.client.table('invoices').select('*').eq(
+            response = await client.table('invoices').select('*').eq(
                 'invoice_number', invoice_number.strip()
             ).execute()
             
@@ -92,7 +94,7 @@ class InvoiceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error buscando factura por número: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_invoices_by_customer_number(self, customer_number: str) -> Dict[str, Any]:
+    async def get_invoices_by_customer_number(self, customer_number: str) -> Dict[str, Any]:
         """
         Obtiene todas las facturas asociadas a un customer_number.
         
@@ -102,11 +104,12 @@ class InvoiceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (lista de facturas) o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
-            response = self.client.table('invoices').select('*').eq(
+            response = await client.table('invoices').select('*').eq(
                 'customer_number', customer_number
             ).order('created_at', desc=True).execute()
             
@@ -122,7 +125,7 @@ class InvoiceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error buscando facturas por customer_number: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_invoices_by_customer_id(self, customer_id: int) -> Dict[str, Any]:
+    async def get_invoices_by_customer_id(self, customer_id: int) -> Dict[str, Any]:
         """
         Obtiene todas las facturas asociadas a un customer_id.
         
@@ -132,11 +135,12 @@ class InvoiceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (lista de facturas) o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
-            response = self.client.table('invoices').select('*').eq(
+            response = await client.table('invoices').select('*').eq(
                 'customer_id', customer_id
             ).order('created_at', desc=True).execute()
             
@@ -152,7 +156,7 @@ class InvoiceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error buscando facturas por customer_id: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_all_invoices(self, limit: int = 100) -> Dict[str, Any]:
+    async def get_all_invoices(self, limit: int = 100) -> Dict[str, Any]:
         """
         Obtiene todas las facturas (últimas N).
         
@@ -162,11 +166,12 @@ class InvoiceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (lista de facturas) o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
-            response = self.client.table('invoices').select('*').order(
+            response = await client.table('invoices').select('*').order(
                 'created_at', desc=True
             ).limit(limit).execute()
             
@@ -176,17 +181,17 @@ class InvoiceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error obteniendo facturas: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def create_invoice_products(self, invoice_id: int, products_list: List[Dict[str, Any]]) -> Dict[str, Any]:
+    async def create_invoice_products(self, invoice_id: int, products_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Crea los productos asociados a una factura.
-        Requiere que product_id y variant_id vengan en la request.
+        Requiere que product_id venga en la request. product_item_id referencia el item físico vendido.
         
         Args:
             invoice_id: ID de la factura (FK a invoices.id)
             products_list: Lista de productos a guardar. Cada producto DEBE contener:
                 - product_id: ID del producto (REQUERIDO)
                 - variant_id: ID del variant (opcional)
-                - serial_number: Número de serie/IMEI (opcional)
+                - product_item_id: ID del item físico vendido (FK a product_items.id, opcional pero recomendado)
                 - quantity: Cantidad (default: 1)
                 - item_price: Precio unitario (unit_price)
                 - extended_price: Precio extendido (unit_price * quantity)
@@ -194,7 +199,8 @@ class InvoiceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (lista de productos creados) o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         if not products_list:
@@ -216,15 +222,15 @@ class InvoiceRepository(BaseSupabaseRepository):
                     'invoice_id': invoice_id,
                     'product_id': product_id,  # REQUERIDO
                     'variant_id': product.get('variant_id'),  # Opcional
+                    'product_item_id': product.get('product_item_id'),  # FK a product_items.id
                     'quantity': product.get('quantity', 1),
                     'unit_price': product.get('item_price', 0),
                     'extended_price': product.get('extended_price', 0),
-                    'serial_number': product.get('serial_number')
                 }
                 invoice_products_data.append(product_data)
             
             # Insertar todos los productos en una sola operación
-            response = self.client.table('invoice_products').insert(invoice_products_data).execute()
+            response = await client.table('invoice_products').insert(invoice_products_data).execute()
             
             if not response.data:
                 return {'success': False, 'error': 'No se pudieron crear los productos de la factura'}
@@ -236,7 +242,37 @@ class InvoiceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error creando productos de factura: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_invoice_with_products(self, invoice_id: int) -> Dict[str, Any]:
+    async def get_product_items_by_ids(self, item_ids: List[int]) -> Dict[str, Any]:
+        """
+        Obtiene un mapa {product_item_id: serial_number} para los IDs dados.
+        Usado para resolver serial_numbers antes de generar el PDF.
+        
+        Args:
+            item_ids: Lista de IDs de product_items
+            
+        Returns:
+            Dict con success y data={item_id: serial_number}
+        """
+        client = await self._get_client()
+        if not client:
+            return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
+        
+        if not item_ids:
+            return {'success': True, 'data': {}}
+        
+        try:
+            response = await client.table('product_items').select('id, serial_number').in_('id', item_ids).execute()
+            result = {
+                row['id']: row.get('serial_number')
+                for row in (response.data or [])
+                if isinstance(row, dict) and 'id' in row
+            }
+            return {'success': True, 'data': result}
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo product_items por IDs: {str(e)}")
+            return {'success': False, 'error': str(e)}
+    
+    async def get_invoice_with_products(self, invoice_id: int) -> Dict[str, Any]:
         """
         Obtiene una factura con todos sus productos asociados.
         Realiza JOIN con products y product_variants para obtener información completa.
@@ -249,23 +285,25 @@ class InvoiceRepository(BaseSupabaseRepository):
                 - invoice: Datos de la factura
                 - products: Lista de productos con información completa (via JOINs)
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
             # Obtener la factura
-            invoice_response = self.client.table('invoices').select('*').eq('id', invoice_id).execute()
+            invoice_response = await client.table('invoices').select('*').eq('id', invoice_id).execute()
             
             if not invoice_response.data:
                 return {'success': False, 'error': f'Factura con ID {invoice_id} no encontrada'}
             
             invoice = invoice_response.data[0]
             
-            # Obtener los productos con JOINs a products y product_variants
-            products_response = self.client.table('invoice_products').select(
+            # Obtener los productos con JOINs a products, product_variants y product_items
+            products_response = await client.table('invoice_products').select(
                 '*,' 
                 'products(id, name, category),' 
-                'product_variants(id, color, capacity, price)'
+                'product_variants(id, color, capacity, price),'
+                'product_items(id, serial_number, product_number)'
             ).eq('invoice_id', invoice_id).order('id').execute()
             
             # Procesar datos para formato más legible
@@ -282,12 +320,16 @@ class InvoiceRepository(BaseSupabaseRepository):
                 variants_data = item.get('product_variants')
                 variants_dict = variants_data if isinstance(variants_data, dict) else {}
                 
+                item_data = item.get('product_items')
+                item_dict = item_data if isinstance(item_data, dict) else {}
+                
                 product_info = {
                     'id': item.get('id'),
+                    'product_item_id': item.get('product_item_id'),
                     'quantity': item.get('quantity'),
                     'unit_price': item.get('unit_price'),
                     'extended_price': item.get('extended_price'),
-                    'serial_number': item.get('serial_number'),
+                    'serial_number': item_dict.get('serial_number'),  # Resolved via FK JOIN
                     # Datos de JOIN (product_id es requerido, siempre existe)
                     'name': products_dict.get('name'),
                     'category': products_dict.get('category'),

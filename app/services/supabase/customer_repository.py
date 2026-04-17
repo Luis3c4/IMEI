@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 class CustomerRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con clientes"""
     
-    def create_customer(self, name: str, dni: str, 
+    async def create_customer(self, name: str, dni: str, 
                        phone: Optional[str] = None) -> Dict[str, Any]:
         """
         Crea un nuevo cliente en la base de datos.
@@ -28,7 +28,8 @@ class CustomerRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
@@ -41,7 +42,7 @@ class CustomerRepository(BaseSupabaseRepository):
             if phone and phone.strip():
                 customer_data['phone'] = phone.strip()
             
-            response = self.client.table('customers').insert(customer_data).execute()
+            response = await client.table('customers').insert(customer_data).execute()
             
             if not response.data:
                 return {'success': False, 'error': 'No se pudo crear el cliente'}
@@ -55,7 +56,7 @@ class CustomerRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error creando cliente: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_customer_by_dni(self, dni: str) -> Dict[str, Any]:
+    async def get_customer_by_dni(self, dni: str) -> Dict[str, Any]:
         """
         Busca un cliente por su DNI (identificador único principal).
         
@@ -65,11 +66,12 @@ class CustomerRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
-            response = self.client.table('customers').select('*').eq(
+            response = await client.table('customers').select('*').eq(
                 'dni', dni.strip()
             ).execute()
             
@@ -90,7 +92,7 @@ class CustomerRepository(BaseSupabaseRepository):
     #     """
     #     pass
 
-    def get_or_create_customer(self, name: str, dni: str,
+    async def get_or_create_customer(self, name: str, dni: str,
                                phone: Optional[str] = None) -> Dict[str, Any]:
         """
         Busca un cliente existente por DNI, o crea uno nuevo si no existe.
@@ -104,12 +106,13 @@ class CustomerRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (cliente existente o nuevo), is_new (bool)
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
             # Buscar cliente existente por DNI (identificador único)
-            dni_search = self.get_customer_by_dni(dni)
+            dni_search = await self.get_customer_by_dni(dni)
             
             if dni_search['success']:
                 existing_customer = dni_search['data']
@@ -123,7 +126,7 @@ class CustomerRepository(BaseSupabaseRepository):
                 if needs_phone_update and phone and phone.strip():
                     # Actualizar el teléfono del cliente existente
                     logger.info(f"🔄 Actualizando teléfono para DNI: {dni}")
-                    update_result = self.client.table('customers').update(
+                    update_result = await client.table('customers').update(
                         {'phone': phone.strip()}
                     ).eq('dni', dni.strip()).execute()
                     
@@ -140,7 +143,7 @@ class CustomerRepository(BaseSupabaseRepository):
                 }
             
             # Cliente no existe, crear uno nuevo
-            create_result = self.create_customer(name, dni, phone)
+            create_result = await self.create_customer(name, dni, phone)
             if create_result['success']:
                 logger.info(f"✅ Nuevo cliente creado con DNI: {dni}")
                 return {
@@ -155,7 +158,7 @@ class CustomerRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error en get_or_create_customer: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_customer_reniec_data(self, dni: str) -> Dict[str, Any]:
+    async def get_customer_reniec_data(self, dni: str) -> Dict[str, Any]:
         """
         Obtiene los datos de RENIEC de un cliente si existen en la BD.
         Los datos de RENIEC son estáticos y no requieren validación de vigencia.
@@ -166,11 +169,12 @@ class CustomerRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (datos de RENIEC) o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
-            response = self.client.table('customers').select(
+            response = await client.table('customers').select(
                 'dni, first_name, first_last_name, second_last_name, name, phone'
             ).eq('dni', dni.strip()).execute()
             
@@ -201,7 +205,7 @@ class CustomerRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error obteniendo datos de RENIEC del cliente: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_all_customers(self, search: Optional[str] = None, page: int = 1, page_size: int = 20, user_id: Optional[str] = None) -> Dict[str, Any]:
+    async def get_all_customers(self, search: Optional[str] = None, page: int = 1, page_size: int = 20, user_id: Optional[str] = None) -> Dict[str, Any]:
         """
         Devuelve la lista paginada de clientes ordenados por índice descendente.
         Si se proporciona user_id, solo devuelve clientes que tengan al menos
@@ -216,7 +220,8 @@ class CustomerRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (lista), total, page, page_size, total_pages o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
 
         try:
@@ -226,12 +231,12 @@ class CustomerRepository(BaseSupabaseRepository):
                     'id, name, dni, phone, created_at, first_name, first_last_name, second_last_name,'
                     'invoices!inner(invoice_products!inner(products(name)))'
                 )
-                query = self.client.table('customers').select(
+                query = client.table('customers').select(
                     select_fields,
                     count=CountMethod.exact
                 ).eq('invoices.user_id', user_id).order('id', desc=True)
             else:
-                query = self.client.table('customers').select(
+                query = client.table('customers').select(
                     'id, name, dni, phone, created_at, first_name, first_last_name, second_last_name,'
                     'invoices(invoice_products(products(name)))',
                     count=CountMethod.exact
@@ -246,7 +251,7 @@ class CustomerRepository(BaseSupabaseRepository):
             offset = (page - 1) * page_size
             query = query.range(offset, offset + page_size - 1)
 
-            response = query.execute()
+            response = await query.execute()
 
             customers: list = response.data or []
             total: int = response.count or 0
@@ -278,7 +283,7 @@ class CustomerRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error obteniendo clientes: {str(e)}")
             return {'success': False, 'error': str(e)}
 
-    def update_customer_reniec_data(self, dni: str, reniec_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_customer_reniec_data(self, dni: str, reniec_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Actualiza los datos de RENIEC de un cliente existente o crea uno nuevo.
         
@@ -289,7 +294,8 @@ class CustomerRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.client:
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
@@ -302,14 +308,14 @@ class CustomerRepository(BaseSupabaseRepository):
             }
             
             # Intentar actualizar primero
-            response = self.client.table('customers').update(
+            response = await client.table('customers').update(
                 customer_update
             ).eq('dni', dni.strip()).execute()
             
             # Si no hay datos, insertar (upsert)
             if not response.data:
                 # No existe, crear nuevo sin phone (será NULL)
-                response = self.client.table('customers').insert(customer_update).execute()
+                response = await client.table('customers').insert(customer_update).execute()
             
             if not response.data:
                 return {'success': False, 'error': 'No se pudo actualizar/crear el cliente'}

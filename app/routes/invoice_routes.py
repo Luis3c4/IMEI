@@ -39,9 +39,9 @@ class ProductModel(BaseModel):
     """Modelo para producto en la factura"""
     product_id: int = Field(..., examples=[1], description="ID del producto (FK a products.id)")
     variant_id: Optional[int] = Field(None, examples=[5], description="ID del variant (FK a product_variants.id)")
+    product_item_id: Optional[int] = Field(None, examples=[42], description="ID del product_item (FK a product_items.id)")
     name: str = Field(..., examples=["IPAD MINI 8.3 WIFI 128GB PURPLE - USA"])
     product_number: str = Field(..., examples=["MXN93LL/A"])
-    serial_number: str = Field(..., examples=["L9FHJMXD66"])
     item_price: float = Field(..., examples=[499.00])
     quantity_ordered: int = Field(default=1)
     quantity_fulfilled: int = Field(default=1)
@@ -135,15 +135,11 @@ async def generar_factura_dinamica(
         
         # Paso 1: Obtener o crear cliente PRIMERO (usando DNI único)
         # Esto nos da el customer.id para relacionar con la factura
-        loop = asyncio.get_running_loop()
-        customer_result = await loop.run_in_executor(
-            None,
-            lambda: supabase_service.customers.get_or_create_customer(
+        customer_result = await supabase_service.customers.get_or_create_customer(
                 name=request.customer.name,
                 dni=request.customer.dni,
                 phone=request.customer.phone
             )
-        )
         
         if not customer_result['success']:
             raise HTTPException(
@@ -157,15 +153,12 @@ async def generar_factura_dinamica(
         
         # Paso 2: Crear registro en la tabla invoices con la relación al customer
         # El trigger generará automáticamente el customer_number para el PDF
-        invoice_result = await loop.run_in_executor(
-            None,
-            lambda: supabase_service.invoices.create_invoice(
+        invoice_result = await supabase_service.invoices.create_invoice(
                 invoice_number=request.invoice_info.invoice_number,
                 invoice_date=request.invoice_info.invoice_date,
                 customer_id=customer_id,
                 user_id=user_id
             )
-        )
         
         if not invoice_result['success']:
             raise HTTPException(
@@ -181,18 +174,29 @@ async def generar_factura_dinamica(
         # Paso 2.5: Persistir productos asociados a la factura
         # Guardar snapshot de los productos en el momento de la venta
         products_list = [p.model_dump() for p in request.products]
-        invoice_products_result = await loop.run_in_executor(
-            None,
-            lambda: supabase_service.invoices.create_invoice_products(
+        invoice_products_result = await supabase_service.invoices.create_invoice_products(
                 invoice_id=invoice_id,
                 products_list=products_list
             )
-        )
         
         if not invoice_products_result['success']:
             # Log warning pero no fallar la generación del PDF
             # Ya que la factura ya fue creada exitosamente
             print(f"⚠️ Warning: Error al guardar productos de factura {invoice_id}: {invoice_products_result.get('error')}")
+        
+        # Paso 2.75: Resolver serial_number de cada producto desde product_items para el PDF
+        item_ids = [p.product_item_id for p in request.products if p.product_item_id is not None]
+        serial_by_item_id: dict = {}
+        if item_ids:
+            serial_result = await supabase_service.invoices.get_product_items_by_ids(item_ids)
+            if serial_result['success']:
+                serial_by_item_id = serial_result['data']
+        
+        # Enriquecer la lista de productos con serial_number resuelto desde BD
+        products_for_pdf = []
+        for p_dict, p_req in zip(products_list, request.products):
+            resolved_serial = serial_by_item_id.get(p_req.product_item_id) if p_req.product_item_id else None
+            products_for_pdf.append({**p_dict, 'serial_number': resolved_serial or ''})
         
         # Paso 3: Preparar datos del cliente para el PDF con el customer_number de invoices
         customer_dict = {
@@ -206,15 +210,13 @@ async def generar_factura_dinamica(
         invoice_info_dict = request.invoice_info.model_dump()
         
         # Generar PDF dinámico
-        pdf_bytes = await loop.run_in_executor(
-            None,
-            lambda: invoice_service.generar_factura_dinamica(
-                order_date=request.order_date,
-                order_number=request.order_number,
-                customer=customer_dict,
-                products=products_list,
-                invoice_info=invoice_info_dict
-            )
+        pdf_bytes = await asyncio.to_thread(
+            invoice_service.generar_factura_dinamica,
+            order_date=request.order_date,
+            order_number=request.order_number,
+            customer=customer_dict,
+            products=products_for_pdf,
+            invoice_info=invoice_info_dict,
         )
         
         # Preparar respuesta
@@ -259,10 +261,7 @@ async def obtener_factura_con_productos(
     """
     try:
         # Obtener factura con productos
-        result = await asyncio.get_running_loop().run_in_executor(
-            None,
-            lambda: supabase_service.invoices.get_invoice_with_products(invoice_id)
-        )
+        result = await supabase_service.invoices.get_invoice_with_products(invoice_id)
         
         if not result['success']:
             raise HTTPException(

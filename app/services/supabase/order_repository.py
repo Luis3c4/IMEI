@@ -14,7 +14,7 @@ _VALID_PHASES = {"pedido", "reservado", "entregado", "completado"}
 class OrderRepository(BaseSupabaseRepository):
     """Repositorio de pedidos del tablero Kanban"""
 
-    def create_order(
+    async def create_order(
         self,
         customer_id: int,
         order_date: str,
@@ -25,9 +25,10 @@ class OrderRepository(BaseSupabaseRepository):
         Inserta un pedido y sus productos en la BD.
         Returns the created order row.
         """
-        assert self.client is not None, "Supabase client not initialized"
-        order_resp = (
-            self.client.table("orders")
+        client = await self._get_client()
+        assert client is not None, "Supabase client not initialized"
+        order_resp = await (
+            client.table("orders")
             .insert(
                 {
                     "customer_id": customer_id,
@@ -55,30 +56,32 @@ class OrderRepository(BaseSupabaseRepository):
                 }
                 for p in products
             ]
-            self.client.table("order_products").insert(rows).execute()
+            await client.table("order_products").insert(rows).execute()
 
         return data[0]
 
-    def get_all_orders(self) -> list:
+    async def get_all_orders(self) -> list:
         """
         Devuelve todos los pedidos con datos de cliente y productos.
         """
-        assert self.client is not None, "Supabase client not initialized"
-        resp = (
-            self.client.table("orders")
+        client = await self._get_client()
+        assert client is not None, "Supabase client not initialized"
+        resp = await (
+            client.table("orders")
             .select("*, customers(name, dni, phone), order_products(*)")
             .order("created_at", desc=True)
             .execute()
         )
         return resp.data or []
 
-    def update_order_phase(self, order_id: str, phase: str) -> dict:
-        assert self.client is not None, "Supabase client not initialized"
+    async def update_order_phase(self, order_id: str, phase: str) -> dict:
+        client = await self._get_client()
+        assert client is not None, "Supabase client not initialized"
         if phase not in _VALID_PHASES:
             raise ValueError(f"Fase inválida: {phase}. Válidas: {_VALID_PHASES}")
 
-        resp = (
-            self.client.table("orders")
+        resp = await (
+            client.table("orders")
             .update({"phase": phase})
             .eq("id", order_id)
             .execute()
@@ -89,6 +92,7 @@ class OrderRepository(BaseSupabaseRepository):
 
         return cast(list[dict[str, Any]], resp.data)[0]
 
-    def delete_order(self, order_id: str) -> None:
-        assert self.client is not None, "Supabase client not initialized"
-        self.client.table("orders").delete().eq("id", order_id).execute()
+    async def delete_order(self, order_id: str) -> None:
+        client = await self._get_client()
+        assert client is not None, "Supabase client not initialized"
+        await client.table("orders").delete().eq("id", order_id).execute()

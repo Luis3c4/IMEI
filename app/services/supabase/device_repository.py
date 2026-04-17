@@ -15,7 +15,7 @@ class DeviceRepository(BaseSupabaseRepository):
     
     # ==================== TABLA: DEVICES ====================
     
-    def insert_device(self, device_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def insert_device(self, device_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Inserta un nuevo dispositivo en la BD
         
@@ -25,12 +25,11 @@ class DeviceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado'}
-        
-        assert self.client is not None
         try:
-            response = self.client.table('devices').insert(
+            response = await client.table('devices').insert(
                 device_data
             ).execute()
             
@@ -40,7 +39,7 @@ class DeviceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error al insertar dispositivo: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_device(self, imei: str) -> Dict[str, Any]:
+    async def get_device(self, imei: str) -> Dict[str, Any]:
         """
         Obtiene un dispositivo por IMEI
         
@@ -50,12 +49,11 @@ class DeviceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado'}
-        
-        assert self.client is not None
         try:
-            response = self.client.table('devices').select(
+            response = await client.table('devices').select(
                 "*"
             ).eq("imei", imei).execute()
             
@@ -66,7 +64,7 @@ class DeviceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error al obtener dispositivo: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def update_device(self, imei: str, device_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def update_device(self, imei: str, device_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Actualiza un dispositivo existente
         
@@ -77,12 +75,11 @@ class DeviceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado'}
-        
-        assert self.client is not None
         try:
-            response = self.client.table('devices').update(
+            response = await client.table('devices').update(
                 device_data
             ).eq("imei", imei).execute()
             
@@ -92,7 +89,7 @@ class DeviceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error al actualizar dispositivo: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def list_devices(self, limit: int = 100, offset: int = 0) -> Dict[str, Any]:
+    async def list_devices(self, limit: int = 100, offset: int = 0) -> Dict[str, Any]:
         """
         Lista dispositivos con paginación
         
@@ -103,12 +100,11 @@ class DeviceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (lista) o error
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado', 'data': []}
-        
-        assert self.client is not None
         try:
-            response = self.client.table('devices').select(
+            response = await client.table('devices').select(
                 "*"
             ).range(offset, offset + limit - 1).execute()
             
@@ -119,7 +115,7 @@ class DeviceRepository(BaseSupabaseRepository):
     
     # ==================== TABLA: CONSULTA_HISTORY ====================
     
-    def insert_history(self, history_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def insert_history(self, history_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Inserta un registro de consulta en el historial
         
@@ -129,12 +125,11 @@ class DeviceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado'}
-        
-        assert self.client is not None
         try:
-            response = self.client.table('consulta_history').insert(
+            response = await client.table('consulta_history').insert(
                 history_data
             ).execute()
             
@@ -144,7 +139,7 @@ class DeviceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error al registrar consulta: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_device_history(self, imei: str, limit: int = 50) -> Dict[str, Any]:
+    async def get_device_history(self, imei: str, limit: int = 50) -> Dict[str, Any]:
         """
         Obtiene el historial de consultas de un dispositivo
         
@@ -155,12 +150,11 @@ class DeviceRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (lista ordenada por fecha desc) o error
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado', 'data': []}
-        
-        assert self.client is not None
         try:
-            response = self.client.table('consulta_history').select(
+            response = await client.table('consulta_history').select(
                 "*"
             ).eq("imei", imei).order("created_at", desc=True).limit(limit).execute()
             

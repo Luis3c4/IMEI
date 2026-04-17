@@ -58,20 +58,20 @@ class MacbookVariantsResponse(BaseModel):
 
 
 @router.get("/", response_model=ProductsResponse)
-def get_all_products():
+async def get_all_products():
     """
     Obtiene todos los productos con sus variantes (JOIN)
     
     Returns:
         ProductsResponse: Lista de todos los productos con sus variantes
     """
-    if not supabase_service.is_connected():
+    if not await supabase_service.is_connected():
         raise HTTPException(
             status_code=503,
             detail="Servicio de base de datos no disponible"
         )
     
-    result = supabase_service.products.get_products_with_variants()
+    result = await supabase_service.products.get_products_with_variants()
     
     if not result.get('success'):
         raise HTTPException(
@@ -87,20 +87,20 @@ def get_all_products():
 
 
 @router.post("/", response_model=ProductCreateResponse)
-def create_product(request: ProductCreateRequest):
+async def create_product(request: ProductCreateRequest):
     """
     Crea un producto con variante e item de inventario.
 
     Si el producto o la variante ya existen, se reutilizan y se crea
     un nuevo item con serial único.
     """
-    if not supabase_service.is_connected():
+    if not await supabase_service.is_connected():
         raise HTTPException(
             status_code=503,
             detail="Servicio de base de datos no disponible"
         )
 
-    result = supabase_service.products.create_product_with_item(
+    result = await supabase_service.products.create_product_with_item(
         category=request.category,
         product_name=request.product_name,
         color=request.color,
@@ -144,18 +144,18 @@ def get_macbook_variants(model: str = Query(..., description="Nombre del modelo 
     )
 
 @router.get("/health")
-def products_health():
+async def products_health():
     """
     Verifica el estado de la conexión a la base de datos
     """
     return {
         "service": "products",
-        "status": "connected" if supabase_service.is_connected() else "disconnected",
+        "status": "connected" if await supabase_service.is_connected() else "disconnected",
         "message": "Servicio de productos operativo"
     }
 
 @router.post("/items/bulk-toggle-sold", response_model=BulkStatusResponse)
-def bulk_toggle_items_sold(request: BulkToggleRequest):
+async def bulk_toggle_items_sold(request: BulkToggleRequest):
     """
     Toggle entre available y sold para múltiples product_items
     Endpoint para manejar multiselección en el frontend
@@ -166,7 +166,7 @@ def bulk_toggle_items_sold(request: BulkToggleRequest):
     Returns:
         BulkStatusResponse con resultados de cada actualización
     """
-    if not supabase_service.is_connected():
+    if not await supabase_service.is_connected():
         raise HTTPException(
             status_code=503,
             detail="Servicio de base de datos no disponible"
@@ -185,8 +185,9 @@ def bulk_toggle_items_sold(request: BulkToggleRequest):
     for item_id in request.item_ids:
         try:
             # Obtener el status actual
-            assert supabase_service.products.client is not None
-            result = supabase_service.products.client.table('product_items').select(
+            client = await supabase_service.products._get_client()
+            assert client is not None
+            result = await client.table('product_items').select(
                 'id, status, serial_number'
             ).eq('id', item_id).execute()
             
@@ -214,7 +215,7 @@ def bulk_toggle_items_sold(request: BulkToggleRequest):
             new_status = 'sold' if current_status == 'available' else 'available'
             
             # Actualizar status
-            update_result = supabase_service.products.update_product_item_status(item_id, new_status)
+            update_result = await supabase_service.products.update_product_item_status(item_id, new_status)
             
             if update_result.get('success'):
                 results.append({
@@ -256,7 +257,7 @@ def bulk_toggle_items_sold(request: BulkToggleRequest):
 
 
 @router.get("/inventory", response_model=ProductHierarchyResponse)
-def get_products_inventory(
+async def get_products_inventory(
     category: Optional[str] = Query(
         default=None,
         description="Filtrar por categoría (ej: IPHONE, MACBOOK, APPLE WATCH)"
@@ -282,7 +283,7 @@ def get_products_inventory(
         - `/products/inventory` - Todo el inventario
         - `/products/inventory?category=IPHONE` - Solo iPhones disponibles
     """
-    if not supabase_service.is_connected():
+    if not await supabase_service.is_connected():
         raise HTTPException(
             status_code=503,
             detail="Servicio de base de datos no disponible"
@@ -292,7 +293,7 @@ def get_products_inventory(
         f"📊 Solicitando inventario completo: category={category or 'ALL'}"
     )
     
-    result = supabase_service.products.get_products_hierarchical(
+    result = await supabase_service.products.get_products_hierarchical(
         category=category
     )
     
