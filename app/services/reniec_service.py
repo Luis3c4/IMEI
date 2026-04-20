@@ -44,7 +44,7 @@ class ReniecService:
         try:
             # 1. Intentar obtener datos de la BD primero
             logger.info(f"🔍 Verificando DNI {numero} en base de datos local...")
-            db_result = supabase_service.customers.get_customer_reniec_data(numero)
+            db_result = await supabase_service.customers.get_customer_reniec_data(numero)
             
             if db_result['success']:
                 logger.info(f"✅ Datos encontrados en BD para DNI: {numero}")
@@ -92,7 +92,7 @@ class ReniecService:
                     
                     # 3. Guardar datos en BD para futuras consultas
                     logger.info(f"💾 Guardando datos de RENIEC en BD para DNI: {numero}")
-                    save_result = supabase_service.customers.update_customer_reniec_data(
+                    save_result = await supabase_service.customers.update_customer_reniec_data(
                         numero, data
                     )
                     

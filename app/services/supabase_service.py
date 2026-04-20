@@ -26,7 +26,8 @@ from .supabase import (
     DeviceRepository,
     ProductRepository,
     CustomerRepository,
-    InvoiceRepository
+    InvoiceRepository,
+    OrderRepository,
 )
 
 logger = logging.getLogger(__name__)
@@ -52,10 +53,11 @@ class SupabaseService:
         self.products = ProductRepository()
         self.customers = CustomerRepository()
         self.invoices = InvoiceRepository()
+        self.orders = OrderRepository()
         
         logger.info("✅ SupabaseService inicializado con repositorios modulares")
     
-    def is_connected(self) -> bool:
+    async def is_connected(self) -> bool:
         """
         Verifica si está conectado a Supabase.
         Delega al repositorio base.
@@ -63,7 +65,7 @@ class SupabaseService:
         Returns:
             True si hay conexión activa, False en caso contrario
         """
-        return self.devices.is_connected()
+        return await self.devices.is_connected()
 
 
 # Instancia global del servicio facade

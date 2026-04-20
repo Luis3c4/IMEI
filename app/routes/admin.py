@@ -11,7 +11,7 @@ from app.middleware.auth_middleware import require_admin
 from app.config import settings
 
 try:
-    from supabase import create_client, Client
+    from supabase import acreate_client, AsyncClient
 except ImportError:
     raise ImportError("Instala supabase-py: pip install supabase")
 
@@ -20,10 +20,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 # Cliente con service role key para operaciones de administración
-_admin_client: Client | None = None
+_admin_client: AsyncClient | None = None
 
 
-def _get_admin_client() -> Client:
+async def _get_admin_client() -> AsyncClient:
     global _admin_client
     if _admin_client is not None:
         return _admin_client
@@ -34,7 +34,7 @@ def _get_admin_client() -> Client:
             detail="Configuración de Supabase no disponible"
         )
 
-    _admin_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    _admin_client = await acreate_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
     return _admin_client
 
 
@@ -52,7 +52,7 @@ class UpdateRoleRequest(BaseModel):
         500: {"description": "Error del servidor"},
     }
 )
-def update_user_role(
+async def update_user_role(
     user_id: str,
     body: UpdateRoleRequest,
     _: None = Depends(require_admin),
@@ -65,8 +65,8 @@ def update_user_role(
     - **role**: `admin` o `user`
     """
     try:
-        admin_client = _get_admin_client()
-        response = admin_client.auth.admin.update_user_by_id(
+        admin_client = await _get_admin_client()
+        response = await admin_client.auth.admin.update_user_by_id(
             user_id,
             {"app_metadata": {"role": body.role}}
         )
@@ -97,14 +97,14 @@ def update_user_role(
         500: {"description": "Error del servidor"},
     }
 )
-def list_users(_: None = Depends(require_admin)):
+async def list_users(_: None = Depends(require_admin)):
     """
     Devuelve todos los usuarios con su id, email, nombre y rol actual.
     Solo accesible por administradores.
     """
     try:
-        admin_client = _get_admin_client()
-        response = admin_client.auth.admin.list_users()
+        admin_client = await _get_admin_client()
+        response = await admin_client.auth.admin.list_users()
 
         users = []
         for u in response:

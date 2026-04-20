@@ -365,3 +365,48 @@ class HealthResponse(BaseModel):
     message: str
     api_provider: Optional[str] = None
     timestamp: Optional[str] = None
+
+
+# ============ ORDERS (KANBAN BOARD) ============
+
+class OrderProductCreate(BaseModel):
+    """Producto de interés dentro de un pedido"""
+    product_id: int
+    label: str
+    unit_price: float = 0.0
+
+
+class OrderCreate(BaseModel):
+    """Datos para crear un nuevo pedido en el tablero"""
+    customer_dni: str = Field(..., min_length=8, max_length=8)
+    customer_name: str
+    customer_phone: Optional[str] = None
+    order_date: str
+    products: List[OrderProductCreate]
+
+
+class OrderPhaseUpdate(BaseModel):
+    """Actualización de fase de un pedido"""
+    phase: str = Field(..., description="pedido | reservado | entregado | completado")
+
+
+class OrderProductResponse(BaseModel):
+    """Producto dentro de un pedido (respuesta)"""
+    id: int
+    product_id: int
+    label: str
+
+
+class OrderResponse(BaseModel):
+    """Pedido completo con cliente y productos (respuesta)"""
+    id: str
+    customer_id: int
+    customer_name: Optional[str] = None
+    customer_dni: Optional[str] = None
+    customer_phone: Optional[str] = None
+    phase: str
+    order_date: str
+    created_by: Optional[str] = None
+    created_at: str
+    updated_at: str
+    products: List[OrderProductResponse] = []

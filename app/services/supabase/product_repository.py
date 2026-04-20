@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class ProductRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con productos e inventario"""
 
-    def create_product_with_item(
+    async def create_product_with_item(
         self,
         category: str,
         product_name: str,
@@ -39,10 +39,9 @@ class ProductRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado'}
-
-        assert self.client is not None
 
         def _normalize_optional_variant_value(value: Optional[str]) -> Optional[str]:
             if value is None:
@@ -89,7 +88,7 @@ class ProductRepository(BaseSupabaseRepository):
 
         try:
             # 1) Buscar o crear producto
-            product_response = self.client.table('products').select('id').eq(
+            product_response = await client.table('products').select('id').eq(
                 'name', normalized_name
             ).eq('category', normalized_category).execute()
 
@@ -98,7 +97,7 @@ class ProductRepository(BaseSupabaseRepository):
                 assert isinstance(product_data, dict)
                 product_id = product_data['id']
             else:
-                new_product = self.client.table('products').insert({
+                new_product = await client.table('products').insert({
                     'name': normalized_name,
                     'category': normalized_category,
                 }).execute()
@@ -125,14 +124,14 @@ class ProductRepository(BaseSupabaseRepository):
 
             # Búsqueda exacta: (product_id, color, capacity, chip)
             variant_query = _apply_color_capacity_filters(
-                self.client.table('product_variants').select('id, price').eq('product_id', product_id)
+                client.table('product_variants').select('id, price').eq('product_id', product_id)
             )
             if normalized_chip is not None:
                 variant_query = variant_query.eq('chip', normalized_chip)
             else:
                 variant_query = variant_query.is_('chip', 'null')
 
-            variant_response = variant_query.execute()
+            variant_response = await variant_query.execute()
 
             # Si no encontró coincidencia exacta y se proporcionó chip,
             # buscar si existe la variante sin chip (chip=NULL) para actualizarla
@@ -140,9 +139,9 @@ class ProductRepository(BaseSupabaseRepository):
             upgrade_chip = False
             if (not variant_response.data or len(variant_response.data) == 0) and normalized_chip is not None:
                 fallback_query = _apply_color_capacity_filters(
-                    self.client.table('product_variants').select('id, price').eq('product_id', product_id)
+                    client.table('product_variants').select('id, price').eq('product_id', product_id)
                 ).is_('chip', 'null')
-                fallback_response = fallback_query.execute()
+                fallback_response = await fallback_query.execute()
                 if fallback_response.data and len(fallback_response.data) > 0:
                     variant_response = fallback_response
                     upgrade_chip = True
@@ -160,9 +159,9 @@ class ProductRepository(BaseSupabaseRepository):
                 if current_price != detected_price:
                     update_fields['price'] = detected_price
                 if update_fields:
-                    self.client.table('product_variants').update(update_fields).eq('id', variant_id).execute()
+                    await client.table('product_variants').update(update_fields).eq('id', variant_id).execute()
             else:
-                new_variant = self.client.table('product_variants').insert({
+                new_variant = await client.table('product_variants').insert({
                     'product_id': product_id,
                     'color': normalized_color,
                     'capacity': normalized_capacity,
@@ -178,7 +177,7 @@ class ProductRepository(BaseSupabaseRepository):
                 variant_id = new_variant_data['id']
 
             # 3) Validar serial único
-            existing_item = self.client.table('product_items').select('id').eq(
+            existing_item = await client.table('product_items').select('id').eq(
                 'serial_number', normalized_serial
             ).execute()
 
@@ -186,7 +185,7 @@ class ProductRepository(BaseSupabaseRepository):
                 return {'success': False, 'error': 'El serial number ya existe'}
 
             # 4) Crear item
-            new_item = self.client.table('product_items').insert({
+            new_item = await client.table('product_items').insert({
                 'variant_id': variant_id,
                 'serial_number': normalized_serial,
                 'product_number': normalized_product_number,
@@ -213,7 +212,7 @@ class ProductRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error creando producto manualmente: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_products_with_variants(self) -> Dict[str, Any]:
+    async def get_products_with_variants(self) -> Dict[str, Any]:
         """
         Obtiene todos los productos con sus variantes y items asociados.
         Incluye conteo de items disponibles y sus serial numbers.
@@ -221,12 +220,11 @@ class ProductRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (lista de productos con variantes anidadas), count
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado', 'data': []}
-        
-        assert self.client is not None
         try:
-            response = self.client.table('products').select(
+            response = await client.table('products').select(
                 """
                 *,
                 product_variants (
@@ -271,7 +269,7 @@ class ProductRepository(BaseSupabaseRepository):
             logger.error(f"Error al obtener productos con variantes: {str(e)}")
             return {'success': False, 'error': str(e), 'data': []}
     
-    def save_device_query(self, device_info: Dict[str, Any], metadata: Dict[str, Any], parsed_model: Dict[str, Optional[str]]) -> Dict[str, Any]:
+    async def save_device_query(self, device_info: Dict[str, Any], metadata: Dict[str, Any], parsed_model: Dict[str, Optional[str]]) -> Dict[str, Any]:
         """
         Guarda un dispositivo consultado con toda su información relacionada.
         Método complejo que maneja la creación/actualización de:
@@ -292,10 +290,9 @@ class ProductRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, product_id, variant_id, item_id, product_number, message
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado'}
-        
-        assert self.client is not None
         
         try:
             # 1. BUSCAR O CREAR PRODUCTO
@@ -316,7 +313,7 @@ class ProductRepository(BaseSupabaseRepository):
                 logger.info(f"📱 Servicio 30 - Usando Model: {product_name}")
 
             # Buscar si el producto ya existe
-            product_response = self.client.table('products').select('*').eq('name', product_name).execute()
+            product_response = await client.table('products').select('*').eq('name', product_name).execute()
             
             if product_response.data and len(product_response.data) > 0:
                 product_data_item = product_response.data[0]
@@ -328,7 +325,7 @@ class ProductRepository(BaseSupabaseRepository):
                     'name': product_name,
                     'category': parsed_model.get('brand') or None
                 }
-                new_product = self.client.table('products').insert(product_data).execute()
+                new_product = await client.table('products').insert(product_data).execute()
                 if new_product.data and len(new_product.data) > 0:
                     product_id = new_product.data[0]['id']  # type: ignore
                 else:
@@ -350,7 +347,7 @@ class ProductRepository(BaseSupabaseRepository):
                 capacity_combined = None
             
             # Construir query dinámicamente para manejar NULL
-            variant_query = self.client.table('product_variants').select('*').eq('product_id', product_id)
+            variant_query = client.table('product_variants').select('*').eq('product_id', product_id)
             
             if color is not None:
                 variant_query = variant_query.eq('color', color)
@@ -367,7 +364,7 @@ class ProductRepository(BaseSupabaseRepository):
             else:
                 variant_query = variant_query.is_('chip', 'null')
 
-            variant_response = variant_query.execute()
+            variant_response = await variant_query.execute()
             
             if variant_response.data and len(variant_response.data) > 0:
                 variant_data_item = variant_response.data[0]
@@ -380,7 +377,7 @@ class ProductRepository(BaseSupabaseRepository):
                 # Actualizar model_description si es necesario
                 model_description = device_info.get('Model_Description')
                 if model_description and model_description != variant_data_item.get('model_description'):
-                    self.client.table('product_variants').update({
+                    await client.table('product_variants').update({
                         'model_description': model_description
                     }).eq('id', variant_id).execute()
                     logger.info(f"✅ Model description actualizado para variante {variant_id}")
@@ -396,7 +393,7 @@ class ProductRepository(BaseSupabaseRepository):
                     'price': product_price,
                     'model_description': device_info.get('Model_Description')
                 }
-                new_variant = self.client.table('product_variants').insert(variant_data).execute()
+                new_variant = await client.table('product_variants').insert(variant_data).execute()
                 if new_variant.data and len(new_variant.data) > 0:
                     variant_id = new_variant.data[0]['id']  # type: ignore
                 else:
@@ -427,7 +424,7 @@ class ProductRepository(BaseSupabaseRepository):
             serial_number = device_info.get('Serial_Number') or device_info.get('IMEI', 'Unknown')
             
             # Verificar si ya existe este serial
-            existing_item = self.client.table('product_items').select('*').eq(
+            existing_item = await client.table('product_items').select('*').eq(
                 'serial_number', serial_number
             ).execute()
             
@@ -442,7 +439,7 @@ class ProductRepository(BaseSupabaseRepository):
                     update_data['product_number'] = product_number
                 
                 if update_data:
-                    self.client.table('product_items').update(update_data).eq('id', item_id).execute()
+                    await client.table('product_items').update(update_data).eq('id', item_id).execute()
                     logger.info(f"✅ Datos actualizados para item {item_id}: {', '.join(update_data.keys())}")
             else:
                 item_data = {
@@ -451,7 +448,7 @@ class ProductRepository(BaseSupabaseRepository):
                     'product_number': product_number,
                     'status': 'available'  # Puedes ajustar según el iCloud_Lock u otro criterio
                 }
-                new_item = self.client.table('product_items').insert(item_data).execute()
+                new_item = await client.table('product_items').insert(item_data).execute()
                 if new_item.data and len(new_item.data) > 0:
                     item_id = new_item.data[0]['id']  # type: ignore
                 else:
@@ -471,7 +468,7 @@ class ProductRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error guardando dispositivo en Supabase: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def update_product_item_status(self, item_id: int, new_status: str) -> Dict[str, Any]:
+    async def update_product_item_status(self, item_id: int, new_status: str) -> Dict[str, Any]:
         """
         Actualiza el status de un product_item (available, sold)
         
@@ -482,10 +479,9 @@ class ProductRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data o error
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {'success': False, 'error': 'Supabase no conectado'}
-        
-        assert self.client is not None
         
         try:
             # Validar status permitidos
@@ -496,7 +492,7 @@ class ProductRepository(BaseSupabaseRepository):
                     'error': f'Status inválido. Debe ser uno de: {valid_statuses}'
                 }
             
-            response = self.client.table('product_items').update({
+            response = await client.table('product_items').update({
                 'status': new_status
             }).eq('id', item_id).execute()
             
@@ -510,7 +506,7 @@ class ProductRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error actualizando status: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    def get_products_hierarchical(
+    async def get_products_hierarchical(
         self, 
         category: Optional[str] = None
     ) -> Dict[str, Any]:
@@ -528,7 +524,8 @@ class ProductRepository(BaseSupabaseRepository):
         Returns:
             Dict con success, data (productos jerárquicos), count
         """
-        if not self.is_connected():
+        client = await self._get_client()
+        if not client:
             return {
                 'success': False, 
                 'error': 'Supabase no conectado', 
@@ -536,11 +533,9 @@ class ProductRepository(BaseSupabaseRepository):
                 'count': 0
             }
         
-        assert self.client is not None
-        
         try:
             # Construir query base con nested select
-            query = self.client.table('products').select(
+            query = client.table('products').select(
                 """
                 id,
                 name,
@@ -571,7 +566,7 @@ class ProductRepository(BaseSupabaseRepository):
             # Ordenar por nombre
             query = query.order('name', desc=False)
             
-            response = query.execute()
+            response = await query.execute()
             
             if not response.data:
                 return {

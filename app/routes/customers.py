@@ -6,13 +6,12 @@ import logging
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from app.schemas import CustomerListResponse, ErrorResponse
-from app.services.supabase_service import SupabaseService
+from app.services.supabase_service import supabase_service
 from app.middleware.auth_middleware import get_current_user, UserInfo
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-supabase_service = SupabaseService()
 
 
 @router.get(
@@ -24,7 +23,7 @@ supabase_service = SupabaseService()
         500: {"model": ErrorResponse, "description": "Error del servidor"}
     }
 )
-def list_customers(
+async def list_customers(
     search: Optional[str] = Query(
         default=None,
         description="Filtrar por nombre, DNI o teléfono",
@@ -42,7 +41,7 @@ def list_customers(
     try:
         # Admin ve todos; user solo los suyos
         filter_user_id = None if current_user.role == "admin" else current_user.user_id
-        result = supabase_service.customers.get_all_customers(search=search, page=page, page_size=page_size, user_id=filter_user_id)
+        result = await supabase_service.customers.get_all_customers(search=search, page=page, page_size=page_size, user_id=filter_user_id)
 
         if not result['success']:
             raise HTTPException(status_code=500, detail=result.get('error', 'Error al obtener clientes'))

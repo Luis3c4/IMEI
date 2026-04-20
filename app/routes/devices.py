@@ -3,7 +3,6 @@ Device Routes - Endpoints para consulta de dispositivos
 Maneja todas las peticiones relacionadas con consulta de IMEI
 """
 
-import asyncio
 import logging
 from fastapi import APIRouter, HTTPException
 from app.schemas import (
@@ -11,7 +10,7 @@ from app.schemas import (
     BalanceResponse, ServicesResponse, HistoryRequest, HistoryResponse
 )
 from app.services.dhru_service import DHRUService
-from app.services.supabase_service import SupabaseService
+from app.services.supabase_service import supabase_service
 from app.services.product_pricing_service import product_pricing_service
 from app.utils.validators import DeviceInputValidator
 from app.utils.parsers import normalize_keys, parse_model_description
@@ -20,7 +19,6 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter()
 dhru_service = DHRUService()
-supabase_service = SupabaseService()
 
 
 @router.post(
@@ -132,14 +130,11 @@ async def query_device(request: QueryDeviceRequest):
                 'balance': result.get('balance')
             }
             _parsed_model = parsed_model
-            supabase_result = await asyncio.get_running_loop().run_in_executor(
-                None,
-                lambda: supabase_service.products.save_device_query(
+            supabase_result = await supabase_service.products.save_device_query(
                     device_info=_device_info,
                     metadata=_metadata,
                     parsed_model=_parsed_model
                 )
-            )
             
             result['supabase_saved'] = supabase_result['success']
             if supabase_result['success']:
