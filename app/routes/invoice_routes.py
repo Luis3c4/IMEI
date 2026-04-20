@@ -157,7 +157,8 @@ async def generar_factura_dinamica(
                 invoice_number=request.invoice_info.invoice_number,
                 invoice_date=request.invoice_info.invoice_date,
                 customer_id=customer_id,
-                user_id=user_id
+                user_id=user_id,
+                order_number=request.order_number
             )
         
         if not invoice_result['success']:
@@ -242,6 +243,106 @@ async def generar_factura_dinamica(
             status_code=500,
             detail=f"Error generando factura: {str(e)}"
         )
+
+
+@router.get("/customer/{customer_id}")
+async def listar_facturas_por_cliente(
+    customer_id: int,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Lista todas las facturas de un cliente.
+    Requiere autenticación JWT de Supabase.
+    """
+    try:
+        result = await supabase_service.invoices.get_invoices_by_customer_id(customer_id)
+
+        # No encontradas no es un error — puede que el cliente aún no tenga facturas
+        invoices = result.get('data', []) if result['success'] else []
+
+        return {"success": True, "data": invoices}
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error listando facturas: {str(e)}")
+
+
+@router.get("/{invoice_id}/pdf")
+async def regenerar_factura_pdf(
+    invoice_id: int,
+    user_id: str = Depends(get_current_user_id)
+):
+    """
+    Regenera el PDF de una factura existente desde los datos guardados en BD.
+    Requiere autenticación JWT de Supabase.
+    """
+    try:
+        result = await supabase_service.invoices.get_invoice_with_products(invoice_id)
+
+        if not result['success']:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Factura no encontrada: {result.get('error', 'Error desconocido')}"
+            )
+
+        data = result['data']
+        invoice = data['invoice']
+        customer = data['customer']
+        products = data['products']
+
+        # Reconstruir customer_dict para el PDF
+        customer_dict = {
+            'name': customer.get('name', ''),
+            'customer_number': invoice.get('customer_number', ''),
+            'dni': customer.get('dni', ''),
+            'phone': customer.get('phone', ''),
+        }
+
+        # Reconstruir lista de productos para el PDF
+        products_for_pdf = [
+            {
+                'name': p.get('name', ''),
+                'product_number': p.get('product_number', ''),
+                'serial_number': p.get('serial_number', ''),
+                'item_price': p.get('unit_price', 0),
+                'extended_price': p.get('extended_price', 0),
+                'quantity_ordered': 1,
+                'quantity_fulfilled': 1,
+            }
+            for p in products
+        ]
+
+        # order_number: usar el guardado; fallback a invoice_number para facturas legacy
+        order_number = invoice.get('order_number') or f"W{str(int(datetime.now().timestamp() * 1000))[-10:]}"
+        invoice_date = invoice.get('invoice_date', '')
+
+        invoice_info_dict = {
+            'invoice_number': invoice.get('invoice_number', ''),
+            'invoice_date': invoice_date,
+            'terms': 'Credit Card',
+        }
+
+        pdf_bytes = await asyncio.to_thread(
+            invoice_service.generar_factura_dinamica,
+            order_date=invoice_date,
+            order_number=order_number,
+            customer=customer_dict,
+            products=products_for_pdf,
+            invoice_info=invoice_info_dict,
+        )
+
+        pdf_stream = BytesIO(pdf_bytes)
+        filename = f"invoice_{order_number}.pdf"
+
+        return StreamingResponse(
+            pdf_stream,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"inline; filename={filename}"}
+        )
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error regenerando PDF: {str(e)}")
 
 
 @router.get("/{invoice_id}/details")

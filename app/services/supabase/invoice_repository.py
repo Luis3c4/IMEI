@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 class InvoiceRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con facturas"""
     
-    async def create_invoice(self, invoice_number: str, invoice_date: str, customer_id: Optional[int] = None, user_id: Optional[str] = None) -> Dict[str, Any]:
+    async def create_invoice(self, invoice_number: str, invoice_date: str, customer_id: Optional[int] = None, user_id: Optional[str] = None, order_number: Optional[str] = None) -> Dict[str, Any]:
         """
         Crea una nueva factura en la base de datos.
         El customer_number se genera automáticamente en la BD mediante trigger.
@@ -23,6 +23,7 @@ class InvoiceRepository(BaseSupabaseRepository):
             invoice_date: Fecha de la factura (ej: "September 04, 2025")
             customer_id: ID del cliente (FK a customers.id). None para facturas sin relación.
             user_id: UUID del usuario autenticado (FK a auth.users.id). None para facturas legacy.
+            order_number: Número de orden generado por el frontend (ej: "W1351042737").
             
         Returns:
             Dict con success, data (incluyendo customer_number generado automáticamente) o error
@@ -45,6 +46,10 @@ class InvoiceRepository(BaseSupabaseRepository):
             # Agregar user_id solo si se proporciona
             if user_id is not None:
                 invoice_data['user_id'] = user_id
+            
+            # Agregar order_number solo si se proporciona
+            if order_number is not None:
+                invoice_data['order_number'] = order_number.strip()
             
             response = await client.table('invoices').insert(invoice_data).execute()
             
@@ -330,6 +335,7 @@ class InvoiceRepository(BaseSupabaseRepository):
                     'unit_price': item.get('unit_price'),
                     'extended_price': item.get('extended_price'),
                     'serial_number': item_dict.get('serial_number'),  # Resolved via FK JOIN
+                    'product_number': item_dict.get('product_number'),  # Resolved via FK JOIN
                     # Datos de JOIN (product_id es requerido, siempre existe)
                     'name': products_dict.get('name'),
                     'category': products_dict.get('category'),
@@ -338,10 +344,20 @@ class InvoiceRepository(BaseSupabaseRepository):
                     'current_price': variants_dict.get('price')
                 }
                 products.append(product_info)
-            
+
+            # Obtener datos del cliente si la factura tiene customer_id
+            customer: Dict[str, Any] = {}
+            if invoice.get('customer_id'):
+                customer_response = await client.table('customers').select(
+                    'id, name, dni, phone'
+                ).eq('id', invoice['customer_id']).execute()
+                if customer_response.data:
+                    customer = customer_response.data[0]
+
             result = {
                 'invoice': invoice,
-                'products': products
+                'customer': customer,
+                'products': products,
             }
             
             logger.info(f"✅ Factura ID {invoice_id} obtenida con {len(products)} productos")
