@@ -13,7 +13,20 @@ logger = logging.getLogger(__name__)
 class InvoiceRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con facturas"""
     
-    async def create_invoice(self, invoice_number: str, invoice_date: str, customer_id: Optional[int] = None, user_id: Optional[str] = None, order_number: Optional[str] = None) -> Dict[str, Any]:
+    async def create_invoice(
+        self,
+        invoice_number: str,
+        invoice_date: str,
+        customer_id: Optional[int] = None,
+        user_id: Optional[str] = None,
+        order_number: Optional[str] = None,
+        shipping_agency: Optional[str] = None,
+        shipping_department: Optional[str] = None,
+        shipping_province: Optional[str] = None,
+        bank_name: Optional[str] = None,
+        payment_total: Optional[float] = None,
+        payment_holder: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Crea una nueva factura en la base de datos.
         El customer_number se genera automáticamente en la BD mediante trigger.
@@ -24,6 +37,12 @@ class InvoiceRepository(BaseSupabaseRepository):
             customer_id: ID del cliente (FK a customers.id). None para facturas sin relación.
             user_id: UUID del usuario autenticado (FK a auth.users.id). None para facturas legacy.
             order_number: Número de orden generado por el frontend (ej: "W1351042737").
+            shipping_agency: Agencia de envio (ej: "OFICINA" u "OLVA").
+            shipping_department: Departamento de envio (solo aplica para OLVA).
+            shipping_province: Provincia de envio (solo aplica para OLVA).
+            bank_name: Banco usado para el pago.
+            payment_total: Monto total pagado.
+            payment_holder: Titular del pago.
             
         Returns:
             Dict con success, data (incluyendo customer_number generado automáticamente) o error
@@ -50,6 +69,20 @@ class InvoiceRepository(BaseSupabaseRepository):
             # Agregar order_number solo si se proporciona
             if order_number is not None:
                 invoice_data['order_number'] = order_number.strip()
+
+            # Campos opcionales de pago/envio
+            if shipping_agency is not None:
+                invoice_data['shipping_agency'] = shipping_agency.strip()
+            if shipping_department is not None:
+                invoice_data['shipping_department'] = shipping_department.strip()
+            if shipping_province is not None:
+                invoice_data['shipping_province'] = shipping_province.strip()
+            if bank_name is not None:
+                invoice_data['bank_name'] = bank_name.strip()
+            if payment_total is not None:
+                invoice_data['payment_total'] = payment_total
+            if payment_holder is not None:
+                invoice_data['payment_holder'] = payment_holder.strip()
             
             response = await client.table('invoices').insert(invoice_data).execute()
             
