@@ -419,7 +419,7 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         'DEFAULT': 19.0,
     },
     'POWER ADAPTER 40W': {
-        'DEFAULT': 19.0,
+        'DEFAULT': 39.0,
     },
 }
 
