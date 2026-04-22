@@ -219,22 +219,28 @@ class InvoiceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error obteniendo facturas: {str(e)}")
             return {'success': False, 'error': str(e)}
     
-    async def get_historial_invoices(self, limit: int = 500) -> Dict[str, Any]:
+    async def get_historial_invoices(self, page: int = 1, page_size: int = 20) -> Dict[str, Any]:
         """
-        Obtiene todas las facturas con datos anidados de cliente y productos
+        Obtiene facturas paginadas con datos anidados de cliente y productos
         para la tabla de historial (Quantum).
 
-        Cada entrada de invoice_products se expande con datos de products,
-        product_variants y product_items (serial_number).
+        Args:
+            page: Número de página (1-based).
+            page_size: Registros por página (default 20).
 
         Returns:
-            Dict con success, data (lista de facturas con productos) o error
+            Dict con success, data, total, page, page_size, total_pages o error
         """
+        import math
+        from postgrest.types import CountMethod
+
         client = await self._get_client()
         if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
 
         try:
+            offset = (page - 1) * page_size
+
             response = await client.table('invoices').select(
                 'id, invoice_date, shipping_agency, shipping_department, shipping_province, '
                 'bank_name, payment_total, payment_holder, '
@@ -244,10 +250,22 @@ class InvoiceRepository(BaseSupabaseRepository):
                 '  products(name, category), '
                 '  product_variants(color, capacity, chip), '
                 '  product_items(serial_number)'
-                ')'
-            ).order('created_at', desc=True).limit(limit).execute()
+                ')',
+                count=CountMethod.exact
+            ).order('created_at', desc=True).range(offset, offset + page_size - 1).execute()
 
-            return {'success': True, 'data': response.data or []}
+            total: int = response.count or 0
+            total_pages = math.ceil(total / page_size) if total > 0 else 1
+
+            logger.info(f"✅ Historial: página {page}/{total_pages}, {len(response.data or [])} facturas")
+            return {
+                'success': True,
+                'data': response.data or [],
+                'total': total,
+                'page': page,
+                'page_size': page_size,
+                'total_pages': total_pages,
+            }
 
         except Exception as e:
             logger.error(f"❌ Error obteniendo historial de facturas: {str(e)}")
