@@ -64,6 +64,16 @@ class InvoiceInfoModel(BaseModel):
     terms: str = Field(default="Credit Card")
 
 
+class PaymentInfoModel(BaseModel):
+    """Modelo para datos de pago/envio que se guardan en invoices"""
+    departamento: Optional[str] = Field(default=None, examples=["Lima"])
+    provincia: Optional[str] = Field(default=None, examples=["Lima"])
+    agencia: Optional[str] = Field(default=None, examples=["OFICINA", "OLVA"])
+    banco: Optional[str] = Field(default=None, examples=["BCP"])
+    total: Optional[str] = Field(default=None, examples=["499.00"])
+    titular: Optional[str] = Field(default=None, examples=["Juan Perez"])
+
+
 class InvoiceRequest(BaseModel):
     """Modelo completo para solicitud de factura"""
     order_date: str = Field(..., examples=["September 04, 2025"])
@@ -71,6 +81,27 @@ class InvoiceRequest(BaseModel):
     customer: CustomerModel
     products: List[ProductModel]
     invoice_info: InvoiceInfoModel
+    payment_info: Optional[PaymentInfoModel] = None
+
+
+def _sanitize_text(value: Optional[str]) -> Optional[str]:
+    """Normaliza strings para persistir: trim y convertir vacios a NULL."""
+    if value is None:
+        return None
+    cleaned = value.strip()
+    return cleaned or None
+
+
+def _parse_optional_amount(value: Optional[str]) -> Optional[float]:
+    """Convierte un monto opcional a float. Retorna None para vacios/invalidos."""
+    cleaned = _sanitize_text(value)
+    if cleaned is None:
+        return None
+
+    try:
+        return float(cleaned)
+    except ValueError:
+        return None
 
 
 @router.get("/test/pdf")
@@ -151,14 +182,34 @@ async def generar_factura_dinamica(
         customer_data = customer_result['data']
         customer_id = customer_data['id']
         
-        # Paso 2: Crear registro en la tabla invoices con la relación al customer
+        # Paso 2: Normalizar datos opcionales de pago/envio para guardarlos en invoices
+        payment_info = request.payment_info
+        agencia = _sanitize_text(payment_info.agencia) if payment_info else None
+        departamento = _sanitize_text(payment_info.departamento) if payment_info else None
+        provincia = _sanitize_text(payment_info.provincia) if payment_info else None
+        banco = _sanitize_text(payment_info.banco) if payment_info else None
+        titular = _sanitize_text(payment_info.titular) if payment_info else None
+        total_pagado = _parse_optional_amount(payment_info.total) if payment_info else None
+
+        # Si la agencia no es OLVA, departamento/provincia no aplican
+        if agencia != "OLVA":
+            departamento = None
+            provincia = None
+
+        # Paso 3: Crear registro en la tabla invoices con la relación al customer
         # El trigger generará automáticamente el customer_number para el PDF
         invoice_result = await supabase_service.invoices.create_invoice(
                 invoice_number=request.invoice_info.invoice_number,
                 invoice_date=request.invoice_info.invoice_date,
                 customer_id=customer_id,
                 user_id=user_id,
-                order_number=request.order_number
+                order_number=request.order_number,
+                shipping_agency=agencia,
+                shipping_department=departamento,
+                shipping_province=provincia,
+                bank_name=banco,
+                payment_total=total_pagado,
+                payment_holder=titular,
             )
         
         if not invoice_result['success']:
@@ -172,7 +223,7 @@ async def generar_factura_dinamica(
         generated_customer_number = invoice_data['customer_number']
         invoice_id = invoice_data['id']
         
-        # Paso 2.5: Persistir productos asociados a la factura
+        # Paso 3.5: Persistir productos asociados a la factura
         # Guardar snapshot de los productos en el momento de la venta
         products_list = [p.model_dump() for p in request.products]
         invoice_products_result = await supabase_service.invoices.create_invoice_products(
@@ -185,7 +236,7 @@ async def generar_factura_dinamica(
             # Ya que la factura ya fue creada exitosamente
             print(f"⚠️ Warning: Error al guardar productos de factura {invoice_id}: {invoice_products_result.get('error')}")
         
-        # Paso 2.75: Resolver serial_number de cada producto desde product_items para el PDF
+        # Paso 3.75: Resolver serial_number de cada producto desde product_items para el PDF
         item_ids = [p.product_item_id for p in request.products if p.product_item_id is not None]
         serial_by_item_id: dict = {}
         if item_ids:
@@ -199,7 +250,7 @@ async def generar_factura_dinamica(
             resolved_serial = serial_by_item_id.get(p_req.product_item_id) if p_req.product_item_id else None
             products_for_pdf.append({**p_dict, 'serial_number': resolved_serial or ''})
         
-        # Paso 3: Preparar datos del cliente para el PDF con el customer_number de invoices
+        # Paso 4: Preparar datos del cliente para el PDF con el customer_number de invoices
         customer_dict = {
             'name': request.customer.name,
             'customer_number': generated_customer_number,  # Usar el generado por invoice

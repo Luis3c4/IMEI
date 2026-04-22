@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 # Importar los blueprints
-from app.routes import health, devices, invoice_routes, products, reniec, customers, admin, orders
+from app.routes import health, devices, invoice_routes, products, reniec, customers, admin, orders, historial_routes
 
 # Configurar logging
 logging.basicConfig(
@@ -103,6 +103,13 @@ def create_app() -> FastAPI:
             tags=["invoices"]
         )
         print("   ✓ Invoice routes registradas (/api/invoices/*)")
+
+        app.include_router(
+            historial_routes.router,
+            prefix="/api/historial",
+            tags=["historial"]
+        )
+        print("   ✓ Historial routes registradas (/api/historial)")
         
         app.include_router(
             products.router,

@@ -13,7 +13,20 @@ logger = logging.getLogger(__name__)
 class InvoiceRepository(BaseSupabaseRepository):
     """Repositorio para operaciones relacionadas con facturas"""
     
-    async def create_invoice(self, invoice_number: str, invoice_date: str, customer_id: Optional[int] = None, user_id: Optional[str] = None, order_number: Optional[str] = None) -> Dict[str, Any]:
+    async def create_invoice(
+        self,
+        invoice_number: str,
+        invoice_date: str,
+        customer_id: Optional[int] = None,
+        user_id: Optional[str] = None,
+        order_number: Optional[str] = None,
+        shipping_agency: Optional[str] = None,
+        shipping_department: Optional[str] = None,
+        shipping_province: Optional[str] = None,
+        bank_name: Optional[str] = None,
+        payment_total: Optional[float] = None,
+        payment_holder: Optional[str] = None,
+    ) -> Dict[str, Any]:
         """
         Crea una nueva factura en la base de datos.
         El customer_number se genera automáticamente en la BD mediante trigger.
@@ -24,6 +37,12 @@ class InvoiceRepository(BaseSupabaseRepository):
             customer_id: ID del cliente (FK a customers.id). None para facturas sin relación.
             user_id: UUID del usuario autenticado (FK a auth.users.id). None para facturas legacy.
             order_number: Número de orden generado por el frontend (ej: "W1351042737").
+            shipping_agency: Agencia de envio (ej: "OFICINA" u "OLVA").
+            shipping_department: Departamento de envio (solo aplica para OLVA).
+            shipping_province: Provincia de envio (solo aplica para OLVA).
+            bank_name: Banco usado para el pago.
+            payment_total: Monto total pagado.
+            payment_holder: Titular del pago.
             
         Returns:
             Dict con success, data (incluyendo customer_number generado automáticamente) o error
@@ -50,6 +69,20 @@ class InvoiceRepository(BaseSupabaseRepository):
             # Agregar order_number solo si se proporciona
             if order_number is not None:
                 invoice_data['order_number'] = order_number.strip()
+
+            # Campos opcionales de pago/envio
+            if shipping_agency is not None:
+                invoice_data['shipping_agency'] = shipping_agency.strip()
+            if shipping_department is not None:
+                invoice_data['shipping_department'] = shipping_department.strip()
+            if shipping_province is not None:
+                invoice_data['shipping_province'] = shipping_province.strip()
+            if bank_name is not None:
+                invoice_data['bank_name'] = bank_name.strip()
+            if payment_total is not None:
+                invoice_data['payment_total'] = payment_total
+            if payment_holder is not None:
+                invoice_data['payment_holder'] = payment_holder.strip()
             
             response = await client.table('invoices').insert(invoice_data).execute()
             
@@ -186,6 +219,40 @@ class InvoiceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error obteniendo facturas: {str(e)}")
             return {'success': False, 'error': str(e)}
     
+    async def get_historial_invoices(self, limit: int = 500) -> Dict[str, Any]:
+        """
+        Obtiene todas las facturas con datos anidados de cliente y productos
+        para la tabla de historial (Quantum).
+
+        Cada entrada de invoice_products se expande con datos de products,
+        product_variants y product_items (serial_number).
+
+        Returns:
+            Dict con success, data (lista de facturas con productos) o error
+        """
+        client = await self._get_client()
+        if not client:
+            return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
+
+        try:
+            response = await client.table('invoices').select(
+                'id, invoice_date, shipping_agency, shipping_department, shipping_province, '
+                'bank_name, payment_total, payment_holder, '
+                'customers(name, dni, phone), '
+                'invoice_products('
+                '  id, unit_price, extended_price, '
+                '  products(name, category), '
+                '  product_variants(color, capacity, chip), '
+                '  product_items(serial_number)'
+                ')'
+            ).order('created_at', desc=True).limit(limit).execute()
+
+            return {'success': True, 'data': response.data or []}
+
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo historial de facturas: {str(e)}")
+            return {'success': False, 'error': str(e)}
+
     async def create_invoice_products(self, invoice_id: int, products_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Crea los productos asociados a una factura.
@@ -301,7 +368,8 @@ class InvoiceRepository(BaseSupabaseRepository):
             if not invoice_response.data:
                 return {'success': False, 'error': f'Factura con ID {invoice_id} no encontrada'}
             
-            invoice = invoice_response.data[0]
+            invoice = invoice_response.data[0]  # type: ignore
+            assert isinstance(invoice, dict)
             
             # Obtener los productos con JOINs a products, product_variants y product_items
             products_response = await client.table('invoice_products').select(
@@ -352,7 +420,9 @@ class InvoiceRepository(BaseSupabaseRepository):
                     'id, name, dni, phone'
                 ).eq('id', invoice['customer_id']).execute()
                 if customer_response.data:
-                    customer = customer_response.data[0]
+                    raw_customer = customer_response.data[0]  # type: ignore
+                    assert isinstance(raw_customer, dict)
+                    customer = raw_customer
 
             result = {
                 'invoice': invoice,
