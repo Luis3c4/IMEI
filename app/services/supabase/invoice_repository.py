@@ -219,6 +219,40 @@ class InvoiceRepository(BaseSupabaseRepository):
             logger.error(f"❌ Error obteniendo facturas: {str(e)}")
             return {'success': False, 'error': str(e)}
     
+    async def get_historial_invoices(self, limit: int = 500) -> Dict[str, Any]:
+        """
+        Obtiene todas las facturas con datos anidados de cliente y productos
+        para la tabla de historial (Quantum).
+
+        Cada entrada de invoice_products se expande con datos de products,
+        product_variants y product_items (serial_number).
+
+        Returns:
+            Dict con success, data (lista de facturas con productos) o error
+        """
+        client = await self._get_client()
+        if not client:
+            return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
+
+        try:
+            response = await client.table('invoices').select(
+                'id, invoice_date, shipping_agency, shipping_department, shipping_province, '
+                'bank_name, payment_total, payment_holder, '
+                'customers(name, dni, phone), '
+                'invoice_products('
+                '  id, unit_price, extended_price, '
+                '  products(name, category), '
+                '  product_variants(color, capacity, chip), '
+                '  product_items(serial_number)'
+                ')'
+            ).order('created_at', desc=True).limit(limit).execute()
+
+            return {'success': True, 'data': response.data or []}
+
+        except Exception as e:
+            logger.error(f"❌ Error obteniendo historial de facturas: {str(e)}")
+            return {'success': False, 'error': str(e)}
+
     async def create_invoice_products(self, invoice_id: int, products_list: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Crea los productos asociados a una factura.
@@ -334,7 +368,8 @@ class InvoiceRepository(BaseSupabaseRepository):
             if not invoice_response.data:
                 return {'success': False, 'error': f'Factura con ID {invoice_id} no encontrada'}
             
-            invoice = invoice_response.data[0]
+            invoice = invoice_response.data[0]  # type: ignore
+            assert isinstance(invoice, dict)
             
             # Obtener los productos con JOINs a products, product_variants y product_items
             products_response = await client.table('invoice_products').select(
@@ -385,7 +420,9 @@ class InvoiceRepository(BaseSupabaseRepository):
                     'id, name, dni, phone'
                 ).eq('id', invoice['customer_id']).execute()
                 if customer_response.data:
-                    customer = customer_response.data[0]
+                    raw_customer = customer_response.data[0]  # type: ignore
+                    assert isinstance(raw_customer, dict)
+                    customer = raw_customer
 
             result = {
                 'invoice': invoice,
