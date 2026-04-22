@@ -389,10 +389,9 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     'KEYBOARD IPAD MAGIC 13': {
         'DEFAULT': 349.0,
     },
-    'KEYBOARD MAGIC KEYBOARDS': {
-        'DEFAULT': 269.0,
+    'MAGIC KEYBOARD IPAD PRO 11-INCH': {
+        'DEFAULT': 299.0,
     },
-    
     # ============================================================
     # Apple Pencil Series
     # ============================================================
@@ -412,6 +411,15 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         '24GB/512GB': 799.0,
         '24GB/1TB': 999.0,
         'DEFAULT': 599.9,
+    },
+    # ============================================================
+    # POWER ADAPTERS
+    # ============================================================
+    'POWER ADAPTER 20W': {
+        'DEFAULT': 19.0,
+    },
+    'POWER ADAPTER 40W': {
+        'DEFAULT': 19.0,
     },
 }
 
