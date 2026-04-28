@@ -390,8 +390,11 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     'KEYBOARD IPAD MAGIC 13': {
         'DEFAULT': 349.0,
     },
-    'MAGIC KEYBOARD IPAD PRO 11-INCH': {
+    'KEYBOARD IPAD PRO 11-INCH': {
         'DEFAULT': 299.0,
+    },
+    'KEYBOARD IPAD PRO 13-INCH': {
+        'DEFAULT': 349.0,
     },
     # ============================================================
     # Apple Pencil Series
