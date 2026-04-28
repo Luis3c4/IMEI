@@ -163,6 +163,7 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
     # MacBook Pro 14" M4 PRO/MAX
     'MACBOOK PRO (14-INCH M4': {
         # Con chip específico (PRO: 12C CPU / 16C GPU | MAX: 14C CPU / 30C GPU)
+        '16GB/512GB/10C CPU / 10C GPU': 1699.0,
         '24GB/512GB/12C CPU / 16C GPU': 1999.0,
         '24GB/1TB/12C CPU / 16C GPU':   2399.0,
         '36GB/1TB/14C CPU / 30C GPU':   2399.0,
