@@ -429,6 +429,25 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
 
 
 # ============================================================
+# APPLE WATCH STRAP VARIANTS
+# ============================================================
+
+APPLE_WATCH_STRAP_VARIANTS: Dict[str, Dict[str, str]] = {
+    # Talla de correa: código → etiqueta legible
+    "strap_sizes": {
+        "SM": "Small/Medium",
+        "ML": "Medium/Large",
+    },
+    # Color de correa: código → etiqueta legible
+    "strap_colors": {
+        "LB": "Light Blush",
+        "BK": "Black",
+        "BC": "Black/Charcoal",
+    },
+}
+
+
+# ============================================================
 # FUNCIONES HELPER
 # ============================================================
 
@@ -492,6 +511,23 @@ def extract_macbook_variants(model_name: str) -> dict:
     return {
         "capacities": list(chips_by_capacity.keys()),
         "chips_by_capacity": chips_by_capacity,
+    }
+
+
+def extract_apple_watch_variants() -> dict:
+    """
+    Retorna las variantes de correa disponibles para Apple Watch.
+
+    Las tallas y colores son globales para todos los modelos actuales.
+    Returns:
+        {
+            "strap_sizes": {"SM": "Small/Medium", "ML": "Medium/Large"},
+            "strap_colors": {"LB": "Light Blush", "BK": "Black"}
+        }
+    """
+    return {
+        "strap_sizes": dict(APPLE_WATCH_STRAP_VARIANTS["strap_sizes"]),
+        "strap_colors": dict(APPLE_WATCH_STRAP_VARIANTS["strap_colors"]),
     }
 
 

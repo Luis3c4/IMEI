@@ -312,6 +312,7 @@ class ProductCreateRequest(BaseModel):
     color: Optional[str] = Field(default=None, description="Color de la variante")
     capacity: Optional[str] = Field(default=None, description="Capacidad/Tamaño/Presentación")
     chip: Optional[str] = Field(default=None, description="Configuración de CPU/GPU (solo Mac/MacBook)")
+    strap_variant: Optional[str] = Field(default=None, description="Variante de correa Apple Watch (ej. 'ML/LB')")
     serial_number: str = Field(..., description="Serial Number único", min_length=1)
     product_number: str = Field(..., description="Product Number", min_length=1)
 

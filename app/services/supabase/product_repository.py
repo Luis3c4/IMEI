@@ -29,6 +29,7 @@ class ProductRepository(BaseSupabaseRepository):
         serial_number: str,
         product_number: str,
         chip: Optional[str] = None,
+        strap_variant: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Crea un registro completo de inventario:
@@ -61,6 +62,7 @@ class ProductRepository(BaseSupabaseRepository):
         normalized_color = _normalize_optional_variant_value(color)
         normalized_capacity = _normalize_optional_variant_value(capacity)
         normalized_chip = _normalize_optional_variant_value(chip)
+        normalized_strap_variant = _normalize_optional_variant_value(strap_variant)
         normalized_serial = serial_number.strip().upper()
         normalized_product_number = product_number.strip().upper()
 
@@ -122,7 +124,7 @@ class ProductRepository(BaseSupabaseRepository):
                     q = q.is_('capacity', 'null')
                 return q
 
-            # Búsqueda exacta: (product_id, color, capacity, chip)
+            # Búsqueda exacta: (product_id, color, capacity, chip, strap_variant)
             variant_query = _apply_color_capacity_filters(
                 client.table('product_variants').select('id, price').eq('product_id', product_id)
             )
@@ -130,31 +132,41 @@ class ProductRepository(BaseSupabaseRepository):
                 variant_query = variant_query.eq('chip', normalized_chip)
             else:
                 variant_query = variant_query.is_('chip', 'null')
+            if normalized_strap_variant is not None:
+                variant_query = variant_query.eq('strap_variant', normalized_strap_variant)
+            else:
+                variant_query = variant_query.is_('strap_variant', 'null')
 
             variant_response = await variant_query.execute()
 
-            # Si no encontró coincidencia exacta y se proporcionó chip,
-            # buscar si existe la variante sin chip (chip=NULL) para actualizarla
+            # Si no encontró coincidencia exacta y se proporcionó chip o strap_variant,
+            # buscar si existe la variante sin ellos (NULL) para actualizarla
             # en lugar de crear un duplicado
             upgrade_chip = False
-            if (not variant_response.data or len(variant_response.data) == 0) and normalized_chip is not None:
+            upgrade_strap = False
+            if (not variant_response.data or len(variant_response.data) == 0) and (
+                normalized_chip is not None or normalized_strap_variant is not None
+            ):
                 fallback_query = _apply_color_capacity_filters(
                     client.table('product_variants').select('id, price').eq('product_id', product_id)
-                ).is_('chip', 'null')
+                ).is_('chip', 'null').is_('strap_variant', 'null')
                 fallback_response = await fallback_query.execute()
                 if fallback_response.data and len(fallback_response.data) > 0:
                     variant_response = fallback_response
-                    upgrade_chip = True
+                    upgrade_chip = normalized_chip is not None
+                    upgrade_strap = normalized_strap_variant is not None
 
             if variant_response.data and len(variant_response.data) > 0:
                 variant_data = variant_response.data[0]
                 assert isinstance(variant_data, dict)
                 variant_id = variant_data['id']
 
-                # Actualizar chip si la variante existente no lo tenía
+                # Actualizar chip / strap_variant si la variante existente no los tenía
                 update_fields = {}
                 if upgrade_chip:
                     update_fields['chip'] = normalized_chip
+                if upgrade_strap:
+                    update_fields['strap_variant'] = normalized_strap_variant
                 current_price = variant_data.get('price')
                 if current_price != detected_price:
                     update_fields['price'] = detected_price
@@ -166,6 +178,7 @@ class ProductRepository(BaseSupabaseRepository):
                     'color': normalized_color,
                     'capacity': normalized_capacity,
                     'chip': normalized_chip,
+                    'strap_variant': normalized_strap_variant,
                     'price': detected_price,
                 }).execute()
 
