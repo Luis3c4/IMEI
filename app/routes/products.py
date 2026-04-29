@@ -7,7 +7,7 @@ from typing import List, Dict, Any , Optional
 from pydantic import BaseModel
 from app.services.supabase_service import supabase_service
 from app.schemas import ProductHierarchyResponse, ProductCreateRequest, ProductCreateResponse, ProductCreateData
-from app.config.pricing_pnumbers import extract_macbook_variants
+from app.config.pricing_pnumbers import extract_macbook_variants, extract_apple_watch_variants
 import logging
 
 logger = logging.getLogger(__name__)
@@ -55,6 +55,12 @@ class MacbookVariantsResponse(BaseModel):
     """Capacidades y chips válidos para un modelo MacBook"""
     capacities: List[str]
     chips_by_capacity: Dict[str, List[str]]
+
+
+class AppleWatchVariantsResponse(BaseModel):
+    """Variantes de correa disponibles para Apple Watch"""
+    strap_sizes: Dict[str, str]
+    strap_colors: Dict[str, str]
 
 
 @router.get("/", response_model=ProductsResponse)
@@ -106,6 +112,7 @@ async def create_product(request: ProductCreateRequest):
         color=request.color,
         capacity=request.capacity,
         chip=request.chip,
+        strap_variant=request.strap_variant,
         serial_number=request.serial_number,
         product_number=request.product_number,
     )
@@ -141,6 +148,21 @@ def get_macbook_variants(model: str = Query(..., description="Nombre del modelo 
     return MacbookVariantsResponse(
         capacities=result["capacities"],
         chips_by_capacity=result["chips_by_capacity"],
+    )
+
+
+@router.get("/apple-watch-variants", response_model=AppleWatchVariantsResponse)
+def get_apple_watch_variants():
+    """
+    Retorna las tallas y colores de correa disponibles para Apple Watch.
+
+    Usar para poblar los selectores de talla y color de correa en el formulario
+    de registro de productos Apple Watch.
+    """
+    result = extract_apple_watch_variants()
+    return AppleWatchVariantsResponse(
+        strap_sizes=result["strap_sizes"],
+        strap_colors=result["strap_colors"],
     )
 
 @router.get("/health")
