@@ -443,6 +443,7 @@ APPLE_WATCH_STRAP_VARIANTS: Dict[str, Dict[str, str]] = {
         "LB": "Light Blush",
         "BK": "Black",
         "BC": "Black/Charcoal",
+        "S": "Starlight",
     },
 }
 
