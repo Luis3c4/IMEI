@@ -36,6 +36,10 @@ class Settings(BaseSettings):
     PORT: int = int(os.getenv('PORT', '8000'))
     ENV: str = os.getenv('ENV', 'production')
     
+    # ============ OCR SERVICE ============
+    OCR_SERVICE_URL: Optional[str] = os.getenv('OCR_SERVICE_URL', None)  # URL interna del servicio IMEI-ocr
+    OCR_API_KEY: Optional[str] = os.getenv('OCR_API_KEY', None)          # Clave compartida con IMEI-ocr
+
     # ============ REDIS (OPCIONAL) ============
     REDIS_URL: Optional[str] = os.getenv('REDIS_URL', None)
     

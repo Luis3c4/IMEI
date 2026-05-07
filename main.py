@@ -12,7 +12,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 
 # Importar los blueprints
-from app.routes import health, devices, invoice_routes, products, reniec, customers, admin, orders, historial_routes
+from app.routes import health, devices, invoice_routes, products, reniec, customers, admin, orders, historial_routes, transfer_routes
 
 # Configurar logging
 logging.basicConfig(
@@ -145,6 +145,13 @@ def create_app() -> FastAPI:
             tags=["orders"]
         )
         print("   ✓ Orders routes registradas (/api/orders/*)")
+
+        app.include_router(
+            transfer_routes.router,
+            prefix="/api/transfers",
+            tags=["transfers"]
+        )
+        print("   ✓ Transfer OCR routes registradas (/api/transfers/*)")
     else:
         # Solo registrar sin imprimir en recarga
         app.include_router(health.router, tags=["health"])
@@ -155,6 +162,7 @@ def create_app() -> FastAPI:
         app.include_router(customers.router, prefix="/api/customers", tags=["customers"])
         app.include_router(admin.router, prefix="/api/admin", tags=["admin"])
         app.include_router(orders.router, prefix="/api/orders", tags=["orders"])
+        app.include_router(transfer_routes.router, prefix="/api/transfers", tags=["transfers"])
     
     # ============ ROOT ENDPOINT ============
     @app.get("/", tags=["root"])

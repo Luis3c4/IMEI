@@ -20,69 +20,75 @@ class InvoiceRepository(BaseSupabaseRepository):
         customer_id: Optional[int] = None,
         user_id: Optional[str] = None,
         order_number: Optional[str] = None,
-        shipping_agency: Optional[str] = None,
-        shipping_department: Optional[str] = None,
-        shipping_province: Optional[str] = None,
+        # Pago
         bank_name: Optional[str] = None,
         payment_total: Optional[float] = None,
         payment_holder: Optional[str] = None,
+        # Envío
+        shipping_agency: Optional[str] = None,
+        shipping_department: Optional[str] = None,
+        shipping_province: Optional[str] = None,
+        # OCR
+        ocr_numero_operacion: Optional[str] = None,
+        ocr_fecha_transferencia: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Crea una nueva factura en la base de datos.
-        El customer_number se genera automáticamente en la BD mediante trigger.
-        
-        Args:
-            invoice_number: Número de factura generado por el frontend (ej: "MA85377130")
-            invoice_date: Fecha de la factura (ej: "September 04, 2025")
-            customer_id: ID del cliente (FK a customers.id). None para facturas sin relación.
-            user_id: UUID del usuario autenticado (FK a auth.users.id). None para facturas legacy.
-            order_number: Número de orden generado por el frontend (ej: "W1351042737").
-            shipping_agency: Agencia de envio (ej: "OFICINA" u "OLVA").
-            shipping_department: Departamento de envio (solo aplica para OLVA).
-            shipping_province: Provincia de envio (solo aplica para OLVA).
-            bank_name: Banco usado para el pago.
-            payment_total: Monto total pagado.
-            payment_holder: Titular del pago.
-            
-        Returns:
-            Dict con success, data (incluyendo customer_number generado automáticamente) o error
+        Si hay datos de pago/envío/OCR, crea primero un registro en invoice_payment_info
+        y luego referencia su id desde invoices.
         """
         client = await self._get_client()
         if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
+            # ── 1. Crear registro en invoice_payment_info si hay datos de pago/envío/OCR ──
+            payment_info_id: Optional[int] = None
+            has_payment_data = any(v is not None for v in [
+                bank_name, payment_total, payment_holder,
+                shipping_agency, shipping_department, shipping_province,
+                ocr_numero_operacion, ocr_fecha_transferencia,
+            ])
+
+            if has_payment_data:
+                payment_data: Dict[str, Any] = {}
+                if bank_name is not None:
+                    payment_data['bank_name'] = bank_name.strip()
+                if payment_total is not None:
+                    payment_data['payment_total'] = payment_total
+                if payment_holder is not None:
+                    payment_data['payment_holder'] = payment_holder.strip()
+                if shipping_agency is not None:
+                    payment_data['shipping_agency'] = shipping_agency.strip()
+                if shipping_department is not None:
+                    payment_data['shipping_department'] = shipping_department.strip()
+                if shipping_province is not None:
+                    payment_data['shipping_province'] = shipping_province.strip()
+                if ocr_numero_operacion is not None:
+                    payment_data['ocr_numero_operacion'] = ocr_numero_operacion.strip()
+                if ocr_fecha_transferencia is not None:
+                    payment_data['ocr_fecha_transferencia'] = ocr_fecha_transferencia.strip()
+
+                pi_response = await client.table('invoice_payment_info').insert(payment_data).execute()
+                if pi_response.data:
+                    pi_row = pi_response.data[0]  # type: ignore
+                    assert isinstance(pi_row, dict)
+                    payment_info_id = int(pi_row['id'])  # type: ignore[arg-type]
+
+            # ── 2. Crear la factura ──────────────────────────────────────────────────────
             invoice_data: Dict[str, Any] = {
                 'invoice_number': invoice_number.strip(),
                 'invoice_date': invoice_date.strip()
-                # customer_number se genera automáticamente por trigger
             }
-            
-            # Agregar customer_id solo si se proporciona
+
             if customer_id is not None:
                 invoice_data['customer_id'] = customer_id
-            
-            # Agregar user_id solo si se proporciona
             if user_id is not None:
                 invoice_data['user_id'] = user_id
-            
-            # Agregar order_number solo si se proporciona
             if order_number is not None:
                 invoice_data['order_number'] = order_number.strip()
-
-            # Campos opcionales de pago/envio
-            if shipping_agency is not None:
-                invoice_data['shipping_agency'] = shipping_agency.strip()
-            if shipping_department is not None:
-                invoice_data['shipping_department'] = shipping_department.strip()
-            if shipping_province is not None:
-                invoice_data['shipping_province'] = shipping_province.strip()
-            if bank_name is not None:
-                invoice_data['bank_name'] = bank_name.strip()
-            if payment_total is not None:
-                invoice_data['payment_total'] = payment_total
-            if payment_holder is not None:
-                invoice_data['payment_holder'] = payment_holder.strip()
+            if payment_info_id is not None:
+                invoice_data['payment_info_id'] = payment_info_id
             
             response = await client.table('invoices').insert(invoice_data).execute()
             
@@ -242,8 +248,10 @@ class InvoiceRepository(BaseSupabaseRepository):
             offset = (page - 1) * page_size
 
             response = await client.table('invoices').select(
-                'id, invoice_date, shipping_agency, shipping_department, shipping_province, '
-                'bank_name, payment_total, payment_holder, '
+                'id, invoice_date, '
+                'invoice_payment_info(bank_name, payment_total, payment_holder, '
+                '  shipping_agency, shipping_department, shipping_province, '
+                '  ocr_numero_operacion, ocr_fecha_transferencia), '
                 'customers(name, dni, phone), '
                 'invoice_products('
                 '  id, unit_price, extended_price, '
