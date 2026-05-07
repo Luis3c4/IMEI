@@ -72,6 +72,8 @@ class PaymentInfoModel(BaseModel):
     banco: Optional[str] = Field(default=None, examples=["BCP"])
     total: Optional[str] = Field(default=None, examples=["499.00"])
     titular: Optional[str] = Field(default=None, examples=["Juan Perez"])
+    numero_operacion: Optional[str] = Field(default=None, examples=["123456789"])
+    fecha_transferencia: Optional[str] = Field(default=None, examples=["04/05/2026"])
 
 
 class InvoiceRequest(BaseModel):
@@ -190,6 +192,8 @@ async def generar_factura_dinamica(
         banco = _sanitize_text(payment_info.banco) if payment_info else None
         titular = _sanitize_text(payment_info.titular) if payment_info else None
         total_pagado = _parse_optional_amount(payment_info.total) if payment_info else None
+        numero_operacion = _sanitize_text(payment_info.numero_operacion) if payment_info else None
+        fecha_transferencia = _sanitize_text(payment_info.fecha_transferencia) if payment_info else None
 
         # Si la agencia no es OLVA, departamento/provincia no aplican
         if agencia != "OLVA":
@@ -204,12 +208,14 @@ async def generar_factura_dinamica(
                 customer_id=customer_id,
                 user_id=user_id,
                 order_number=request.order_number,
-                shipping_agency=agencia,
-                shipping_department=departamento,
-                shipping_province=provincia,
                 bank_name=banco,
                 payment_total=total_pagado,
                 payment_holder=titular,
+                shipping_agency=agencia,
+                shipping_department=departamento,
+                shipping_province=provincia,
+                ocr_numero_operacion=numero_operacion,
+                ocr_fecha_transferencia=fecha_transferencia,
             )
         
         if not invoice_result['success']:

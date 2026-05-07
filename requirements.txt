@@ -10,6 +10,7 @@ pydantic-settings==2.1.0
 # HTTP requests
 requests==2.31.0
 httpx==0.28.1
+python-multipart==0.0.27
 
 # Generación de PDFs
 weasyprint==63.1
