@@ -437,6 +437,7 @@ APPLE_WATCH_STRAP_VARIANTS: Dict[str, Dict[str, str]] = {
     "strap_sizes": {
         "SM": "Small/Medium",
         "ML": "Medium/Large",
+        "OS": "One Size",
     },
     # Color de correa: código → etiqueta legible
     "strap_colors": {
@@ -522,7 +523,7 @@ def extract_apple_watch_variants() -> dict:
     Las tallas y colores son globales para todos los modelos actuales.
     Returns:
         {
-            "strap_sizes": {"SM": "Small/Medium", "ML": "Medium/Large"},
+            "strap_sizes": {"SM": "Small/Medium", "ML": "Medium/Large", "OS": "One Size"},
             "strap_colors": {"LB": "Light Blush", "BK": "Black"}
         }
     """
