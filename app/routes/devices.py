@@ -95,70 +95,74 @@ async def query_device(request: QueryDeviceRequest):
         result['data'] = normalize_keys(result['data'])
         user_product_number = request.product_number.strip().upper() if request.product_number else None
         
-        # 4. GUARDAR EN SUPABASE si está conectado
-        try:
+        # 4. GUARDAR EN SUPABASE si está habilitado para esta consulta
+        if request.save_to_supabase:
+            try:
             # Parsear combinando Model y Model_Description para mejorar extracción
-            model_parts = [
-                result['data'].get('Model'),
-                result['data'].get('Model_Description')
-            ]
-            combined_model = " ".join([m for m in model_parts if m]).strip()
+                model_parts = [
+                    result['data'].get('Model'),
+                    result['data'].get('Model_Description')
+                ]
+                combined_model = " ".join([m for m in model_parts if m]).strip()
 
-            parsed_model = parse_model_description(combined_model)
+                parsed_model = parse_model_description(combined_model)
             
-            logger.info(f"📱 Modelo parseado: {parsed_model}")
+                logger.info(f"📱 Modelo parseado: {parsed_model}")
             
-            # Obtener precio del producto
-            product_price = product_pricing_service.get_product_price(parsed_model)
-            if product_price:
-                logger.info(f"💰 Precio del producto: ${product_price} USD")
-            else:
-                logger.warning(f"⚠️  No se encontró precio para el modelo: {parsed_model.get('full_model')}")
-            
-            # Prioridad: product_number digitado por el usuario > DHRU
-            product_number = user_product_number or result['data'].get('Part_Number')
-            
-            # Guardar en Supabase
-            _device_info = result['data']
-            _metadata = {
-                'input_value': request.input_value,
-                'service_id': "30" if used_fallback else request.service_id,
-                'order_id': result.get('order_id'),
-                'price': result.get('price'),
-                'product_price': product_price,
-                'product_number': product_number,
-                'balance': result.get('balance')
-            }
-            _parsed_model = parsed_model
-            supabase_result = await supabase_service.products.save_device_query(
-                    device_info=_device_info,
-                    metadata=_metadata,
-                    parsed_model=_parsed_model
-                )
-            
-            result['supabase_saved'] = supabase_result['success']
-            if supabase_result['success']:
-                result['supabase_ids'] = {
-                    'product_id': supabase_result.get('product_id'),
-                    'variant_id': supabase_result.get('variant_id'),
-                    'item_id': supabase_result.get('item_id'),
-                    'product_number': supabase_result.get('product_number')  # Agregar a respuesta
-                }
-                result['parsed_model'] = parsed_model
-                # Agregar precio del producto a la respuesta
+                # Obtener precio del producto
+                product_price = product_pricing_service.get_product_price(parsed_model)
                 if product_price:
-                    result['product_price'] = product_price
-                    result['product_currency'] = 'USD'
-                logger.info(f"✅ Guardado en Supabase: {supabase_result}")
-            else:
-                result['supabase_error'] = supabase_result.get('error')
-                logger.error(f"❌ Error guardando en Supabase: {supabase_result.get('error')}")
+                    logger.info(f"💰 Precio del producto: ${product_price} USD")
+                else:
+                    logger.warning(f"⚠️  No se encontró precio para el modelo: {parsed_model.get('full_model')}")
+            
+                # Prioridad: product_number digitado por el usuario > DHRU
+                product_number = user_product_number or result['data'].get('Part_Number')
+            
+                # Guardar en Supabase
+                _device_info = result['data']
+                _metadata = {
+                    'input_value': request.input_value,
+                    'service_id': "30" if used_fallback else request.service_id,
+                    'order_id': result.get('order_id'),
+                    'price': result.get('price'),
+                    'product_price': product_price,
+                    'product_number': product_number,
+                    'balance': result.get('balance')
+                }
+                _parsed_model = parsed_model
+                supabase_result = await supabase_service.products.save_device_query(
+                        device_info=_device_info,
+                        metadata=_metadata,
+                        parsed_model=_parsed_model
+                    )
                 
-        except Exception as e:
-            # Si falla Supabase, no bloqueamos la respuesta
+                result['supabase_saved'] = supabase_result['success']
+                if supabase_result['success']:
+                    result['supabase_ids'] = {
+                        'product_id': supabase_result.get('product_id'),
+                        'variant_id': supabase_result.get('variant_id'),
+                        'item_id': supabase_result.get('item_id'),
+                        'product_number': supabase_result.get('product_number')  # Agregar a respuesta
+                    }
+                    result['parsed_model'] = parsed_model
+                    # Agregar precio del producto a la respuesta
+                    if product_price:
+                        result['product_price'] = product_price
+                        result['product_currency'] = 'USD'
+                    logger.info(f"✅ Guardado en Supabase: {supabase_result}")
+                else:
+                    result['supabase_error'] = supabase_result.get('error')
+                    logger.error(f"❌ Error guardando en Supabase: {supabase_result.get('error')}")
+                    
+            except Exception as e:
+                # Si falla Supabase, no bloqueamos la respuesta
+                result['supabase_saved'] = False
+                result['supabase_error'] = str(e)
+                logger.error(f"❌ Excepción guardando en Supabase: {str(e)}")
+        else:
             result['supabase_saved'] = False
-            result['supabase_error'] = str(e)
-            logger.error(f"❌ Excepción guardando en Supabase: {str(e)}")
+            result['supabase_error'] = None
     
     return result
 
