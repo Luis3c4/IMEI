@@ -4,7 +4,7 @@ Estos modelos proporcionan validación automática y documentación en Swagger
 """
 
 from pydantic import BaseModel, Field, ConfigDict
-from typing import Optional, Any, Dict, List
+from typing import Optional, Any, Dict, List, Union
 
 
 # ============ DEVICE ENDPOINTS ============
@@ -31,6 +31,10 @@ class QueryDeviceRequest(BaseModel):
         description="Formato de respuesta",
         json_schema_extra={"example": "beta"}
     )
+    save_to_supabase: bool = Field(
+        default=True,
+        description="Si se debe persistir la consulta en Supabase"
+    )
     
     # Pydantic v2: usar model_config para ejemplos del cuerpo
     model_config = ConfigDict(
@@ -40,7 +44,8 @@ class QueryDeviceRequest(BaseModel):
                     "input_value": "356789012345678",
                     "product_number": "MXN93LL/A",
                     "service_id": "30",
-                    "formato": "beta"
+                    "formato": "beta",
+                    "save_to_supabase": True
                 }
             ]
         }
@@ -93,7 +98,7 @@ class QueryDeviceResponse(BaseModel):
     data: Dict[str, Any]
     balance: Optional[float] = None
     price: Optional[float] = None
-    order_id: Optional[str] = None
+    order_id: Optional[Union[str, int]] = None
     sheet_updated: Optional[bool] = None
     total_registros: Optional[int] = None
     sheet_url: Optional[str] = None
@@ -315,6 +320,8 @@ class ProductCreateRequest(BaseModel):
     strap_variant: Optional[str] = Field(default=None, description="Variante de correa Apple Watch (ej. 'ML/LB')")
     serial_number: str = Field(..., description="Serial Number único", min_length=1)
     product_number: str = Field(..., description="Product Number", min_length=1)
+    imei1: Optional[str] = Field(default=None, description="IMEI principal (solo iPhone)")
+    imei2: Optional[str] = Field(default=None, description="IMEI secundario (solo iPhone)")
 
 
 class ProductCreateData(BaseModel):

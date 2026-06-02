@@ -5,6 +5,7 @@ Rutas para manejar productos desde Supabase
 from fastapi import APIRouter, HTTPException, Query
 from typing import List, Dict, Any , Optional
 from pydantic import BaseModel
+import re
 from app.services.supabase_service import supabase_service
 from app.schemas import ProductHierarchyResponse, ProductCreateRequest, ProductCreateResponse, ProductCreateData
 from app.config.pricing_pnumbers import extract_macbook_variants, extract_apple_watch_variants
@@ -106,6 +107,22 @@ async def create_product(request: ProductCreateRequest):
             detail="Servicio de base de datos no disponible"
         )
 
+    is_iphone_family = "IPHONE" in request.product_name.upper()
+    imei_pattern = re.compile(r"^\d{15}$")
+
+    if is_iphone_family:
+        if not request.imei1 or not request.imei2:
+            raise HTTPException(
+                status_code=400,
+                detail="Para iPhone, IMEI1 e IMEI2 son obligatorios"
+            )
+
+        if not imei_pattern.match(request.imei1) or not imei_pattern.match(request.imei2):
+            raise HTTPException(
+                status_code=400,
+                detail="IMEI1 e IMEI2 deben tener exactamente 15 dígitos numéricos"
+            )
+
     result = await supabase_service.products.create_product_with_item(
         category=request.category,
         product_name=request.product_name,
@@ -115,6 +132,8 @@ async def create_product(request: ProductCreateRequest):
         strap_variant=request.strap_variant,
         serial_number=request.serial_number,
         product_number=request.product_number,
+        imei1=request.imei1,
+        imei2=request.imei2,
     )
 
     if not result.get('success'):

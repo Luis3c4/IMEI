@@ -30,6 +30,8 @@ class ProductRepository(BaseSupabaseRepository):
         product_number: str,
         chip: Optional[str] = None,
         strap_variant: Optional[str] = None,
+        imei1: Optional[str] = None,
+        imei2: Optional[str] = None,
     ) -> Dict[str, Any]:
         """
         Crea un registro completo de inventario:
@@ -65,6 +67,8 @@ class ProductRepository(BaseSupabaseRepository):
         normalized_strap_variant = _normalize_optional_variant_value(strap_variant)
         normalized_serial = serial_number.strip().upper()
         normalized_product_number = product_number.strip().upper()
+        normalized_imei1 = _normalize_optional_variant_value(imei1)
+        normalized_imei2 = _normalize_optional_variant_value(imei2)
 
         if not all([
             normalized_category,
@@ -202,6 +206,8 @@ class ProductRepository(BaseSupabaseRepository):
                 'variant_id': variant_id,
                 'serial_number': normalized_serial,
                 'product_number': normalized_product_number,
+                'imei1': normalized_imei1,
+                'imei2': normalized_imei2,
                 'status': 'available',
             }).execute()
 
