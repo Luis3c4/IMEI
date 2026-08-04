@@ -389,6 +389,12 @@
                 <td>
                     <div class="product-name">{{ product.name }}</div>
                     <div class="serial-line">Serial No.: ({{ product.serial_number }})</div>
+                    {% if product.imei1 %}
+                    <div class="serial-line">IMEI1: {{ product.imei1 }}</div>
+                    {% endif %}
+                    {% if product.imei2 %}
+                    <div class="serial-line">IMEI2: {{ product.imei2 }}</div>
+                    {% endif %}
                 </td>
                 <td>{{ product.product_number }}</td>
                 <td class="align-right">${{ "%.2f"|format(product.item_price) }}</td>
