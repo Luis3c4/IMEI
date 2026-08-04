@@ -242,19 +242,26 @@ async def generar_factura_dinamica(
             # Ya que la factura ya fue creada exitosamente
             print(f"⚠️ Warning: Error al guardar productos de factura {invoice_id}: {invoice_products_result.get('error')}")
         
-        # Paso 3.75: Resolver serial_number de cada producto desde product_items para el PDF
+        # Paso 3.75: Resolver serial_number/imei1/imei2 de cada producto desde product_items para el PDF
+        # imei1/imei2 solo vienen rellenados para iPhones
         item_ids = [p.product_item_id for p in request.products if p.product_item_id is not None]
-        serial_by_item_id: dict = {}
+        item_data_by_id: dict = {}
         if item_ids:
-            serial_result = await supabase_service.invoices.get_product_items_by_ids(item_ids)
-            if serial_result['success']:
-                serial_by_item_id = serial_result['data']
-        
-        # Enriquecer la lista de productos con serial_number resuelto desde BD
+            item_result = await supabase_service.invoices.get_product_items_by_ids(item_ids)
+            if item_result['success']:
+                item_data_by_id = item_result['data']
+
+        # Enriquecer la lista de productos con serial_number/imei1/imei2 resueltos desde BD
         products_for_pdf = []
         for p_dict, p_req in zip(products_list, request.products):
-            resolved_serial = serial_by_item_id.get(p_req.product_item_id) if p_req.product_item_id else None
-            products_for_pdf.append({**p_dict, 'serial_number': resolved_serial or ''})
+            resolved_item = item_data_by_id.get(p_req.product_item_id) if p_req.product_item_id else None
+            resolved_item = resolved_item or {}
+            products_for_pdf.append({
+                **p_dict,
+                'serial_number': resolved_item.get('serial_number') or '',
+                'imei1': resolved_item.get('imei1') or '',
+                'imei2': resolved_item.get('imei2') or '',
+            })
         
         # Paso 4: Preparar datos del cliente para el PDF con el customer_number de invoices
         customer_dict = {
@@ -360,6 +367,8 @@ async def regenerar_factura_pdf(
                 'name': p.get('name', ''),
                 'product_number': p.get('product_number', ''),
                 'serial_number': p.get('serial_number', ''),
+                'imei1': p.get('imei1', ''),
+                'imei2': p.get('imei2', ''),
                 'item_price': p.get('unit_price', 0),
                 'extended_price': p.get('extended_price', 0),
                 'quantity_ordered': 1,

@@ -342,26 +342,31 @@ class InvoiceRepository(BaseSupabaseRepository):
     
     async def get_product_items_by_ids(self, item_ids: List[int]) -> Dict[str, Any]:
         """
-        Obtiene un mapa {product_item_id: serial_number} para los IDs dados.
-        Usado para resolver serial_numbers antes de generar el PDF.
-        
+        Obtiene un mapa {product_item_id: {serial_number, imei1, imei2}} para los IDs dados.
+        Usado para resolver serial_number/imei1/imei2 antes de generar el PDF.
+        imei1/imei2 solo vienen rellenados para iPhones.
+
         Args:
             item_ids: Lista de IDs de product_items
-            
+
         Returns:
-            Dict con success y data={item_id: serial_number}
+            Dict con success y data={item_id: {serial_number, imei1, imei2}}
         """
         client = await self._get_client()
         if not client:
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
-        
+
         if not item_ids:
             return {'success': True, 'data': {}}
-        
+
         try:
-            response = await client.table('product_items').select('id, serial_number').in_('id', item_ids).execute()
+            response = await client.table('product_items').select('id, serial_number, imei1, imei2').in_('id', item_ids).execute()
             result = {
-                row['id']: row.get('serial_number')
+                row['id']: {
+                    'serial_number': row.get('serial_number'),
+                    'imei1': row.get('imei1'),
+                    'imei2': row.get('imei2'),
+                }
                 for row in (response.data or [])
                 if isinstance(row, dict) and 'id' in row
             }
@@ -402,7 +407,7 @@ class InvoiceRepository(BaseSupabaseRepository):
                 '*,' 
                 'products(id, name, category),' 
                 'product_variants(id, color, capacity, price),'
-                'product_items(id, serial_number, product_number)'
+                'product_items(id, serial_number, product_number, imei1, imei2)'
             ).eq('invoice_id', invoice_id).order('id').execute()
             
             # Procesar datos para formato más legible
@@ -430,6 +435,8 @@ class InvoiceRepository(BaseSupabaseRepository):
                     'extended_price': item.get('extended_price'),
                     'serial_number': item_dict.get('serial_number'),  # Resolved via FK JOIN
                     'product_number': item_dict.get('product_number'),  # Resolved via FK JOIN
+                    'imei1': item_dict.get('imei1'),  # Resolved via FK JOIN (solo iPhone)
+                    'imei2': item_dict.get('imei2'),  # Resolved via FK JOIN (solo iPhone)
                     # Datos de JOIN (product_id es requerido, siempre existe)
                     'name': products_dict.get('name'),
                     'category': products_dict.get('category'),
