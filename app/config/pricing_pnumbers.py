@@ -446,6 +446,7 @@ APPLE_WATCH_STRAP_VARIANTS: Dict[str, Dict[str, str]] = {
         "BC": "Black/Charcoal",
         "S": "Starlight",
         "AB": "Anchor Blue",
+        "LBL": "Light Blue",
     },
 }
 
@@ -525,7 +526,7 @@ def extract_apple_watch_variants() -> dict:
     Returns:
         {
             "strap_sizes": {"SM": "Small/Medium", "ML": "Medium/Large", "OS": "One Size"},
-            "strap_colors": {"LB": "Light Blush", "BK": "Black"}
+            "strap_colors": {"LB": "Light Blush", "BK": "Black", "AB": "Anchor Blue", "LBL": "Light Blue"}
         }
     """
     return {
