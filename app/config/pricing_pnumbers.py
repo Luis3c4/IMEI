@@ -39,6 +39,14 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         '1TB': 1599.0,
         '2TB': 1999.0,
     },
+
+    # iPhone 18 Pro Max (precio igual para todos los colores: Burgundy, Glacier, Silver, Black)
+    'IPHONE 18 PRO MAX': {
+        '256GB': 1299.0,
+        '512GB': 1499.0,
+        '1TB': 1899.0,
+        '2TB': 2499.0,
+    },
     
     # iPhone 17 Base
     'IPHONE 17': {
