@@ -207,3 +207,5 @@ scripts/
 
 # Archivos de configuración local
 .env.example
+
+credenciales.json

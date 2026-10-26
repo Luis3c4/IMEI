@@ -42,6 +42,9 @@ class Settings(BaseSettings):
 
     # ============ REDIS (OPCIONAL) ============
     REDIS_URL: Optional[str] = os.getenv('REDIS_URL', None)
+
+    # ============ GOOGLE SHEETS (OPCIONAL) ============
+    GOOGLE_CREDS_JSON: Optional[str] = os.getenv('GOOGLE_SHEETS_CREDENTIALS', None)  # Ruta al archivo JSON de credenciales de Google
     
     class Config:
         env_file = '.env'

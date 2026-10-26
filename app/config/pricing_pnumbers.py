@@ -47,6 +47,13 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         '1TB': 1899.0,
         '2TB': 2499.0,
     },
+
+    'IPHONE 18 PRO MAX': {
+        '256GB': 1199.0,
+        '512GB': 1399.0,
+        '1TB': 1799.0,
+        '2TB': 2399.0,
+    },
     
     # iPhone 17 Base
     'IPHONE 17': {

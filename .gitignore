@@ -63,7 +63,7 @@ venv.bak/
 ehthumbs.db
 Thumbs.db
 Desktop.ini
-
+credenciales.json
 # Environment variables
 .env
 .env.local

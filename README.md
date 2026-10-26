@@ -430,18 +430,3 @@ APIs:        DHRU, Google Sheets API
 - [Pydantic Settings](https://docs.pydantic.dev/latest/concepts/settings/)
 - [Requests Library](https://requests.readthedocs.io/)
 
-## 📄 Licencia
-
-[Especificar licencia del proyecto]
-
-## 👥 Autores
-
-- luis choqque 
-
-## 📧 Contacto
-
-Para preguntas o problemas, contactar a: javie.apaza@gmail.com
-
----
-
-**Última actualización:** 27 de diciembre de 2025
