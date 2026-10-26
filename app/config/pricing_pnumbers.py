@@ -48,7 +48,7 @@ APPLE_PRICING_USD: Dict[str, Dict[str, float]] = {
         '2TB': 2499.0,
     },
 
-    'IPHONE 18 PRO ': {
+    'IPHONE 18 PRO': {
         '256GB': 1199.0,
         '512GB': 1399.0,
         '1TB': 1799.0,
