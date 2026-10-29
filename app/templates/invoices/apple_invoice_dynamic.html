@@ -408,7 +408,7 @@
             <tr>
                 <td>
                     <div class="product-name">{{ product.name }}</div>
-                    <div class="serial-line">Serial No.: ({{ product.serial_number }})</div>
+                    <div class="serial-line">Serial No.: ({{ product.serial_number[1:] if product.serial_number.startswith('S') else product.serial_number }})</div>
                     {% if product.imei1 %}
                     <div class="serial-line">IMEI1: {{ product.imei1 }}</div>
                     {% endif %}
@@ -423,7 +423,11 @@
                 <td class="align-right">${{ "%.2f"|format(product.extended_price) }}</td>
             </tr>
             {% endfor %}
-            <div class="serial-line">Items will be invoiced once they have shipped or are ready for pickup.</div>
+            <tr>
+                <td colspan="6">
+                    <div class="serial-line">Items will be invoiced once they have shipped or are ready for pickup.</div>
+                </td>
+            </tr>        
         </tbody>
     </table>
     

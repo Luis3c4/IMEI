@@ -94,6 +94,7 @@ class InvoiceRequest(BaseModel):
     order_number: str = Field(..., examples=["W1351042737"])
     customer: CustomerModel
     products: List[ProductModel]
+    include_imei: bool = Field(default=True, description="Incluir IMEI de iPhones en el PDF")
     invoice_info: InvoiceInfoModel
     payment_info: Optional[PaymentInfoModel] = None
 
@@ -275,8 +276,8 @@ async def generar_factura_dinamica(
             products_for_pdf.append({
                 **p_dict,
                 'serial_number': resolved_item.get('serial_number') or '',
-                'imei1': resolved_item.get('imei1') or '',
-                'imei2': resolved_item.get('imei2') or '',
+                'imei1': (resolved_item.get('imei1') or '') if request.include_imei else '',
+                'imei2': (resolved_item.get('imei2') or '') if request.include_imei else '',
             })
         
         # Paso 4: Preparar datos del cliente para el PDF con el customer_number de invoices
