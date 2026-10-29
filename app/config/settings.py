@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from typing import Optional
+from pydantic import Field
 from pydantic_settings import BaseSettings
 
 # Cargar .env.local si existe (desarrollo), sino cargar .env
@@ -44,10 +45,17 @@ class Settings(BaseSettings):
     REDIS_URL: Optional[str] = os.getenv('REDIS_URL', None)
 
     # ============ GOOGLE SHEETS (OPCIONAL) ============
-    GOOGLE_CREDS_JSON: Optional[str] = os.getenv('GOOGLE_SHEETS_CREDENTIALS', None)  # Ruta al archivo JSON de credenciales de Google
-    
+    GOOGLE_CREDS_JSON: Optional[str] = Field(
+        default=os.getenv('GOOGLE_SHEETS_CREDENTIALS'),
+        validation_alias='GOOGLE_SHEETS_CREDENTIALS',
+    )
+    SHEET_ID: Optional[str] = Field(
+        default=os.getenv('GOOGLE_SHEET_ID'),
+        validation_alias='GOOGLE_SHEET_ID',
+    )
+
     class Config:
-        env_file = '.env'
+        env_file = str(env_file)
         case_sensitive = True
 
 

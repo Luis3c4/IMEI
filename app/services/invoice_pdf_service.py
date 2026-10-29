@@ -5,6 +5,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 from io import BytesIO
+from zoneinfo import ZoneInfo
 
 from weasyprint import HTML, CSS
 from jinja2 import Environment, FileSystemLoader, select_autoescape
@@ -64,7 +65,10 @@ class InvoicePDFService:
         """
         # Calcular totales
         total = sum(float(p.get('extended_price', 0)) for p in products)
-        
+        generation_time = datetime.now(ZoneInfo("America/Lima"))
+        period = "a. m." if generation_time.hour < 12 else "p. m."
+        footer_datetime = f"{generation_time:%d/%m/%y, %I:%M} {period}"
+
         # Cargar template dinámico
         template = self.env.get_template("apple_invoice_dynamic.html")
         
@@ -75,7 +79,8 @@ class InvoicePDFService:
             "customer": customer,
             "products": products,
             "total": total,
-            "invoice_info": invoice_info
+            "invoice_info": invoice_info,
+            "footer_datetime": footer_datetime
         }
         
         # Renderizar HTML

@@ -1,53 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Apple Store Invoice Receipt</title>
-    <style> 
+    <style>
         @font-face {
             font-family: 'SF Pro Display';
             src: url('assets/fonts/SFPRODISPLAYREGULAR.OTF') format('opentype');
             font-weight: 400;
             font-style: normal;
         }
-        
+
         @font-face {
             font-family: 'SF Pro Display';
             src: url('assets/fonts/SFPRODISPLAYMEDIUM.OTF') format('opentype');
             font-weight: 500;
             font-style: normal;
         }
-        
+
         @font-face {
             font-family: 'SF Pro Display';
             src: url('assets/fonts/SFPRODISPLAYMEDIUM.OTF') format('opentype');
             font-weight: 600;
             font-style: normal;
         }
-        
+
         @page {
             size: A4;
             margin: 2.2cm 1.4cm;
+
+            @bottom-left {
+                content: "https://secure9.store.apple.com/shop/order/print/invoice/10078/AFH1586943";
+                font-family: 'SF Pro Display', Arial, sans-serif;
+                color: #777;
+                font-size: 5pt;
+                vertical-align: middle;
+            }
+
+            @bottom-right {
+                content: "27/10/26, 11:45 a. m.\A Página 1 de 1";
+                font-family: 'SF Pro Display', Arial, sans-serif;
+                color: #777;
+                font-size: 5pt;
+                text-align: right;
+                white-space: pre;
+                vertical-align: middle;
+            }
         }
-        
+
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
         }
-        
+
         body {
             font-family: 'SF Pro Display', Arial, sans-serif;
             font-size: 7.5pt;
             color: #000;
             line-height: 1.3;
         }
-        
+
         /* Header Section */
         .header {
             margin-bottom: 15px;
         }
-        
+
         .apple-logo {
             font-size: 8pt;
             font-weight: 600;
@@ -56,18 +75,21 @@
             margin-bottom: 1px;
             letter-spacing: -0.3px;
         }
+
         .logo-container {
             display: inline-flex;
             align-items: center;
             gap: 6px;
             margin-bottom: 1px;
         }
+
         .apple-logo-img {
             height: 14px;
             width: auto;
             margin-right: 2px;
             vertical-align: middle;
         }
+
         .apple-logo-text {
             font-size: 11pt;
             font-weight: 600;
@@ -77,13 +99,14 @@
             white-space: nowrap;
             display: inline-block;
         }
+
         .apple-logo::before {
             content: "";
             display: inline-block;
             font-size: 15pt;
             margin-right: 2px;
         }
-        
+
         .invoice-title {
             margin-top: 8px;
             font-size: 9pt;
@@ -92,13 +115,13 @@
             color: #000;
             margin-bottom: 10px;
         }
-        
+
         .do-not-pay-badge {
             display: inline-block;
             font-size: 6pt;
             font-weight: 400;
         }
-        
+
         /* Info Grid */
         .info-container {
             display: table;
@@ -106,7 +129,7 @@
             margin-bottom: 25px;
             margin-top: 2px;
         }
-        
+
         .info-left,
         .info-right {
             display: table-cell;
@@ -114,12 +137,12 @@
             vertical-align: top;
             padding-right: 30px;
         }
-        
+
         .info-right {
             padding-right: 0;
             padding-left: 6px;
         }
-        
+
         .info-label {
             font-size: 7pt;
             font-weight: 600;
@@ -127,7 +150,7 @@
             color: #000;
             margin-bottom: 2px;
         }
-        
+
         .info-value {
             font-size: 7pt;
             font-weight: 400;
@@ -135,11 +158,11 @@
             margin-bottom: 1px;
             line-height: 1.4;
         }
-        
+
         .info-block {
             margin-bottom: 15px;
         }
-        
+
         .customer-label {
             font-size: 6pt;
             font-weight: 400;
@@ -147,7 +170,7 @@
             margin-top: 50px;
             margin-bottom: 2px;
         }
-        
+
         /* Order Details Table */
         .section-title {
             font-size: 9pt;
@@ -157,18 +180,18 @@
             margin-bottom: 8px;
             margin-top: 5px;
         }
-        
-        table { 
+
+        table {
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 0;
         }
-        
+
         thead tr {
             margin-bottom: 0px;
             border-bottom: 1.5px solid #000;
         }
-        
+
         th {
             text-align: left;
             padding: 6px 4px 2px 0;
@@ -177,39 +200,39 @@
             font-family: 'SF Pro Display', Arial, sans-serif;
             color: #000;
         }
-        
+
         th.align-right {
             text-align: right;
             padding-right: 0;
         }
-        
+
         th.align-center {
             text-align: center;
         }
-        
+
         td {
             padding: 8px 4px 8px 0;
             font-size: 7pt;
             color: #000;
             vertical-align: top;
         }
-        
+
         td.align-right {
             text-align: right;
             padding-right: 0;
         }
-        
+
         td.align-center {
             text-align: center;
         }
-        
+
         .product-name {
             font-weight: 400;
             margin-bottom: 2px;
             line-height: 1.3;
             padding-left: 8px;
         }
-        
+
         .serial-line {
             font-size: 6.5pt;
             color: #000;
@@ -217,18 +240,18 @@
             margin-top: 2px;
             padding-left: 12px;
         }
-        
+
         /* Totals Section */
         .totals-wrapper {
             margin-top: 15px;
             padding-top: 10px;
         }
-        
+
         .totals-section {
             float: right;
             width: 240px;
         }
-        
+
         .total-line {
             display: flex;
             justify-content: space-between;
@@ -236,12 +259,13 @@
             font-size: 7.5pt;
             font-weight: 600;
         }
+
         /* Payment Methods */
         .payment-section {
             clear: both;
             padding-top: 1px;
         }
-        
+
         .payment-title {
             font-size: 9pt;
             font-weight: 700;
@@ -251,30 +275,30 @@
             margin-bottom: 10px;
             border-bottom: 1.5px solid #000;
         }
-        
+
         .payment-detail {
             font-size: 7pt;
             color: #000;
             margin-bottom: 2px;
         }
-        
+
         /* Additional Information */
         .additional-info {
             margin-top: 15px;
             padding-top: 10px;
         }
-        
+
         .additional-info .payment-title {
             border-bottom: none;
         }
-        
+
         .info-grid-bottom {
             display: flex;
             flex-direction: column;
             width: 100%;
             margin-top: 8px;
         }
-        
+
         .info-labels-row {
             display: flex;
             width: 100%;
@@ -282,21 +306,21 @@
             padding-bottom: 1px;
             margin-bottom: 2px;
         }
-        
+
         .info-values-row {
             display: flex;
             width: 100%;
         }
-        
+
         .info-col {
             flex: 1;
             padding-right: 20px;
         }
-        
+
         .info-col:last-child {
             padding-right: 0;
         }
-        
+
         .info-col-label {
             font-size: 7.5pt;
             font-weight: 800;
@@ -304,13 +328,13 @@
             color: #000;
             margin-bottom: 2px;
         }
-        
+
         .info-col-value {
             font-size: 7pt;
             font-weight: 400;
             color: #000;
         }
-        
+
         /* Footer */
         .footer {
             margin-top: 20px;
@@ -318,13 +342,14 @@
             color: #000;
             line-height: 1.4;
         }
-        
+
         .footer a {
             color: #0066cc;
             text-decoration: none;
         }
     </style>
 </head>
+
 <body>
     <!-- Header -->
     <div class="header">
@@ -335,7 +360,7 @@
         <div class="invoice-title">Invoice Receipt</div>
         <div class="do-not-pay-badge">Do Not Pay</div>
     </div>
-    
+
     <!-- Info Section -->
     <div class="info-container">
         <div class="info-left">
@@ -343,39 +368,41 @@
                 <div class="info-label">Order Number:</div>
                 <div class="info-value">W1351042737</div>
             </div>
-            
+
             <div class="info-block">
                 <div class="info-label">Sold To:</div>
-                <div class="info-value">Geraldine Eva Flores Flores</div>
-                <div class="info-value">3410 SE Stott Cir Troutdale OR 97060-2559</div>
+                <div class="info-value">probando</div>
+                <div class="info-value">2012 sw 24th Street #19</div>
+                <div class="info-value">CORAL GABLES FL 33145-3758</div>
                 <div class="info-value">United States</div>
             </div>
-            
+
             <div class="customer-label">Customer No: 900007</div>
         </div>
-        
+
         <div class="info-right">
             <div class="info-block">
                 <div class="info-label">Order Date:</div>
                 <div class="info-value">September 04, 2025</div>
             </div>
-            
+
             <div class="info-block">
                 <div class="info-label">Location:</div>
-                <div class="info-value">Apple Pioneer Place</div>
-                <div class="info-value">450 SW Yamhill Street</div>
-                <div class="info-value">PORTLAND OR 97204-2007</div>
+                <div class="info-value">Patricia Gamarra</div>
+                <div class="info-value">Apple Aventura</div>
+                <div class="info-value">19501 Biscayne Boulevard</div>
+                <div class="info-value">AVENTURA FL 33180-2342</div>
                 <div class="info-value">United States</div>
             </div>
         </div>
     </div>
-    
+
     <!-- Order Details -->
     <div class="section-title">Order Details</div>
-    
+
     <table>
         <thead>
-            <tr>                
+            <tr>
                 <th style="width: 32%;">Product Name</th>
                 <th style="width: 11%;">Product Number</th>
                 <th class="align-right" style="width: 11%;">Item Price</th>
@@ -411,9 +438,14 @@
                 <td class="align-center">1</td>
                 <td class="align-right">$129.00</td>
             </tr>
+            <tr>
+                <td colspan="6">
+                    <div class="serial-line">Items will be invoiced once they have shipped or are ready for pickup.</div>
+                </td>
+            </tr>
         </tbody>
     </table>
-    
+
     <!-- Totals -->
     <div class="totals-wrapper">
         <div class="totals-section">
@@ -435,14 +467,14 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Payment Methods -->
     <div class="payment-section">
         <div class="payment-title">Payment Methods</div>
         <div class="payment-detail">$628.00 charged to Visa XXXXXXXXXXXX8722</div>
         <div class="payment-detail">For a total of $628.00</div>
     </div>
-    
+
     <!-- Additional Information -->
     <div class="additional-info">
         <div class="payment-title">Additional Information</div>
@@ -471,11 +503,12 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Footer -->
     <div class="footer">
         This order is subject to Apple's Sales and Refunds Policies<br>
         <a href="https://www.apple.com/shop/open/salespolicies">https://www.apple.com/shop/open/salespolicies</a>
     </div>
 </body>
+
 </html>

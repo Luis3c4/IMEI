@@ -4,6 +4,21 @@
 
 El servicio de Supabase ha sido refactorizado de un servicio monolítico (638 líneas) a una arquitectura modular basada en **Repository Pattern** con **Facade limpio**. Esta nueva estructura mejora la mantenibilidad, testabilidad y escalabilidad del código.
 
+## Prioridad de persistencia
+
+Supabase conserva el registro de la factura, el cliente y los productos para generar
+el PDF. Los campos comerciales de la cotización se escriben solo en Google Sheets,
+en la pestaña `Ventas`. Para cada producto, el backend obtiene su serie desde
+`product_items` y actualiza la fila que tenga exactamente ese valor en la columna
+`SERIE`; no agrega filas nuevas. La serie debe existir una sola vez en la pestaña.
+Si una serie falta o está duplicada, el frontend informa que la sincronización falló.
+Un fallo de Google Sheets no descarta el PDF ni los registros de factura requeridos
+por el sistema.
+
+El endpoint `GET /status` informa si las variables necesarias para Supabase y Google
+Sheets están configuradas. Este es un indicador de configuración, no una prueba de
+conectividad con esos servicios.
+
 ---
 
 ## 🏗️ Estructura de Archivos

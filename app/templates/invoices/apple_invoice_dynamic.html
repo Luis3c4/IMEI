@@ -28,6 +28,24 @@
         @page {
             size: A4;
             margin: 2.2cm 1.4cm;
+
+            @bottom-left {
+                content: "https://secure9.store.apple.com/shop/order/print/invoice/10078/AFH1586943";
+                font-family: 'SF Pro Display', Arial, sans-serif;
+                color: #777;
+                font-size: 5pt;
+                vertical-align: middle;
+            }
+
+            @bottom-right {
+                content: "{{ footer_datetime }}\A Página " counter(page) " de " counter(pages);
+                font-family: 'SF Pro Display', Arial, sans-serif;
+                color: #777;
+                font-size: 5pt;
+                text-align: right;
+                white-space: pre;
+                vertical-align: middle;
+            }
         }
         
         * {
@@ -346,7 +364,8 @@
             <div class="info-block">
                 <div class="info-label">Sold To:</div>
                 <div class="info-value">{{ customer.name }}</div>
-                <div class="info-value">3410 SE Stott Cir Troutdale OR 97060-2559</div>
+                <div class="info-value">2012 sw 24th Street #19</div>
+                <div class="info-value">CORAL GABLES FL 33145-3758</div>
                 <div class="info-value">United States</div>
             </div>
             
@@ -361,9 +380,10 @@
             
             <div class="info-block">
                 <div class="info-label">Location:</div>
-                <div class="info-value">Apple Pioneer Place</div>
-                <div class="info-value">450 SW Yamhill Street</div>
-                <div class="info-value">PORTLAND OR 97204-2007</div>
+                <div class="info-value">Patricia Gamarra</div>
+                <div class="info-value">Apple Aventura</div>
+                <div class="info-value">19501 Biscayne Boulevard</div>
+                <div class="info-value">AVENTURA FL 33180-2342</div>
                 <div class="info-value">United States</div>
             </div>
         </div>
@@ -403,23 +423,27 @@
                 <td class="align-right">${{ "%.2f"|format(product.extended_price) }}</td>
             </tr>
             {% endfor %}
+            <div class="serial-line">Items will be invoiced once they have shipped or are ready for pickup.</div>
         </tbody>
     </table>
     
     <!-- Totals -->
+    {% set subtotal = total|round(2) %}
+    {% set sales_tax = (subtotal * 0.07)|round(2) %}
+    {% set grand_total = subtotal + sales_tax %}
     <div class="totals-wrapper">
         <div class="totals-section">
             <div class="total-line">
                 <span>Subtotal</span>
-                <span>${{ "%.2f"|format(total) }}</span>
+                <span>${{ "%.2f"|format(subtotal) }}</span>
             </div>
             <div class="total-line">
                 <span>Sales Tax</span>
-                <span>$0.00</span>
+                <span>${{ "%.2f"|format(sales_tax) }}</span>
             </div>
             <div class="total-line">
                 <span>Total</span>
-                <span>${{ "%.2f"|format(total) }}</span>
+                <span>${{ "%.2f"|format(grand_total) }}</span>
             </div>
             <div class="total-line">
                 <span>Amount Due</span>
@@ -431,8 +455,8 @@
     <!-- Payment Methods -->
     <div class="payment-section">
         <div class="payment-title">Payment Methods</div>
-        <div class="payment-detail">${{ "%.2f"|format(total) }} charged to Visa XXXXXXXXXXXX8722</div>
-        <div class="payment-detail">For a total of ${{ "%.2f"|format(total) }}</div>
+        <div class="payment-detail">${{ "%.2f"|format(grand_total) }} charged to Visa XXXXXXXXXXXX8722</div>
+        <div class="payment-detail">For a total of ${{ "%.2f"|format(grand_total) }}</div>
     </div>
     
     <!-- Additional Information -->

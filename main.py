@@ -75,6 +75,7 @@ def create_app() -> FastAPI:
         allow_credentials=True,
         allow_methods=["*"],              # Permitir todos los métodos
         allow_headers=["*"],              # Permitir todos los headers
+        expose_headers=["X-Google-Sheet-Saved"],
     )
     
     # ============ REGISTRAR RUTAS ============
@@ -174,6 +175,7 @@ def create_app() -> FastAPI:
             "docs": "/docs",
             "endpoints": {
                 "health": "/health",
+                "status": "/status",
                 "devices": "/api/devices/*",
                 "invoices": "/api/invoices/*",
                 "products": "/api/products/*",

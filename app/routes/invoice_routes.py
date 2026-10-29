@@ -2,6 +2,7 @@
 Rutas para generación de facturas PDF estilo Apple Store
 """
 from datetime import datetime
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -10,10 +11,12 @@ from io import BytesIO
 import asyncio
 
 from app.services.invoice_pdf_service import InvoicePDFService
+from app.services.google_sheets_service import update_sales_rows_by_serial
 from app.services.supabase_service import supabase_service
 from app.middleware import get_current_user_id
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # Inicializar servicio
 invoice_service = InvoicePDFService()
@@ -66,9 +69,18 @@ class InvoiceInfoModel(BaseModel):
 
 class PaymentInfoModel(BaseModel):
     """Modelo para datos de pago/envio que se guardan en invoices"""
+    tipo: Optional[str] = Field(default=None, examples=["FINAL", "TIENDA"])
     departamento: Optional[str] = Field(default=None, examples=["Lima"])
     provincia: Optional[str] = Field(default=None, examples=["Lima"])
+    provincia_adicional: Optional[str] = None
     agencia: Optional[str] = Field(default=None, examples=["OFICINA", "OLVA"])
+    olva: Optional[float] = None
+    frank: Optional[float] = None
+    vendedor: Optional[str] = Field(default=None, examples=["Javi", "Roger"])
+    numero: Optional[float] = None
+    precio_final: Optional[float] = None
+    envio: Optional[float] = None
+    accesorio: Optional[float] = None
     banco: Optional[str] = Field(default=None, examples=["BCP"])
     total: Optional[str] = Field(default=None, examples=["499.00"])
     titular: Optional[str] = Field(default=None, examples=["Juan Perez"])
@@ -186,19 +198,31 @@ async def generar_factura_dinamica(
         
         # Paso 2: Normalizar datos opcionales de pago/envio para guardarlos en invoices
         payment_info = request.payment_info
+        tipo = _sanitize_text(payment_info.tipo) if payment_info else None
         agencia = _sanitize_text(payment_info.agencia) if payment_info else None
         departamento = _sanitize_text(payment_info.departamento) if payment_info else None
         provincia = _sanitize_text(payment_info.provincia) if payment_info else None
+        provincia_adicional = (
+            _sanitize_text(payment_info.provincia_adicional) if payment_info else None
+        )
+        olva = payment_info.olva if payment_info else None
+        frank = payment_info.frank if payment_info else None
+        vendedor = _sanitize_text(payment_info.vendedor) if payment_info else None
+        numero = payment_info.numero if payment_info else None
+        precio_final = payment_info.precio_final if payment_info else None
+        envio = payment_info.envio if payment_info else None
+        accesorio = payment_info.accesorio if payment_info else None
         banco = _sanitize_text(payment_info.banco) if payment_info else None
-        titular = _sanitize_text(payment_info.titular) if payment_info else None
         total_pagado = _parse_optional_amount(payment_info.total) if payment_info else None
-        numero_operacion = _sanitize_text(payment_info.numero_operacion) if payment_info else None
-        fecha_transferencia = _sanitize_text(payment_info.fecha_transferencia) if payment_info else None
 
         # Si la agencia no es OLVA, departamento/provincia no aplican
         if agencia != "OLVA":
             departamento = None
             provincia = None
+            provincia_adicional = None
+            olva = None
+            frank = None
+            envio = None
 
         # Paso 3: Crear registro en la tabla invoices con la relación al customer
         # El trigger generará automáticamente el customer_number para el PDF
@@ -208,14 +232,6 @@ async def generar_factura_dinamica(
                 customer_id=customer_id,
                 user_id=user_id,
                 order_number=request.order_number,
-                bank_name=banco,
-                payment_total=total_pagado,
-                payment_holder=titular,
-                shipping_agency=agencia,
-                shipping_department=departamento,
-                shipping_province=provincia,
-                ocr_numero_operacion=numero_operacion,
-                ocr_fecha_transferencia=fecha_transferencia,
             )
         
         if not invoice_result['success']:
@@ -241,7 +257,7 @@ async def generar_factura_dinamica(
             # Log warning pero no fallar la generación del PDF
             # Ya que la factura ya fue creada exitosamente
             print(f"⚠️ Warning: Error al guardar productos de factura {invoice_id}: {invoice_products_result.get('error')}")
-        
+
         # Paso 3.75: Resolver serial_number/imei1/imei2 de cada producto desde product_items para el PDF
         # imei1/imei2 solo vienen rellenados para iPhones
         item_ids = [p.product_item_id for p in request.products if p.product_item_id is not None]
@@ -283,6 +299,43 @@ async def generar_factura_dinamica(
             products=products_for_pdf,
             invoice_info=invoice_info_dict,
         )
+
+        sheet_saved = True
+        try:
+            sheet_rows = [
+                {
+                    "serie": product.get("serial_number"),
+                    "tipo": tipo,
+                    "departamento": departamento,
+                    "provincia": provincia,
+                    "provincia_adicional": provincia_adicional,
+                    "agencia": agencia,
+                    "olva": olva,
+                    "frank": frank,
+                    "vendedor": vendedor,
+                    "dni": request.customer.dni,
+                    "numero": numero,
+                    "cliente": request.customer.name,
+                    "telefono": request.customer.phone,
+                    "fecha_venta": request.invoice_info.invoice_date,
+                    "precio_final": precio_final,
+                    "envio": envio,
+                    "accesorio": accesorio,
+                    "banco": banco,
+                    "total": total_pagado,
+                }
+                for product in products_for_pdf
+            ]
+            await asyncio.to_thread(
+                update_sales_rows_by_serial,
+                sheet_rows,
+            )
+        except Exception:
+            sheet_saved = False
+            logger.exception(
+                "No se pudo registrar la factura %s en la pestaña Ventas de Google Sheets",
+                invoice_id,
+            )
         
         # Preparar respuesta
         pdf_stream = BytesIO(pdf_bytes)
@@ -296,7 +349,8 @@ async def generar_factura_dinamica(
             headers={
                 "Content-Disposition": f"attachment; filename={filename}",
                 "X-Customer-Number": generated_customer_number,  # Header con el customer_number generado
-                "X-Invoice-Id": str(invoice_id)  # ID de la factura creada
+                "X-Invoice-Id": str(invoice_id),  # ID de la factura creada
+                "X-Google-Sheet-Saved": str(sheet_saved).lower(),
             }
         )
         
