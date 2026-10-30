@@ -469,4 +469,3 @@ class InvoiceRepository(BaseSupabaseRepository):
         except Exception as e:
             logger.error(f"❌ Error obteniendo factura con productos: {str(e)}")
             return {'success': False, 'error': str(e)}
-
