@@ -1,4 +1,4 @@
-"""Escritura de cotizaciones en la pestaña Ventas de Google Sheets."""
+"""Escritura de cotizaciones en la pestaña STOCK de Google Sheets."""
 
 import json
 import re
@@ -33,13 +33,15 @@ SHEET_COLUMNS = [
     ("frank", "FRANK", {"FRANK"}),
     ("vendedor", "VEND.", {"VEND", "VENDEDOR"}),
     ("dni", "DNI", {"DNI"}),
-    ("numero", "N°", {"N", "NRO", "NUMERO", "NUMERODEVENTA", "NVENTA"}),
     ("cliente", "CLIENTE", {"CLIENTE", "NOMBRECLIENTE"}),
     ("telefono", "TELEFONO", {"TELEFONO", "TELEFONOCLIENTE", "PHONE"}),
-    ("fecha_venta", "FECHA V.", {"FECHAV", "FECHAVENTA", "FECHA"}),
+    ("fecha_transferencia", "FECHA-HORA", {"FECHAHORA", "FECHAHORATRANSFERENCIA"}),
     ("precio_final", "PRECIO F.", {"PRECIOF", "PRECIOFINAL"}),
     ("envio", "ENVIO", {"ENVIO"}),
     ("accesorio", "ACCES.", {"ACCES", "ACCESORIO"}),
+    ("billeteras", "BILLETERAS", {"BILLETERAS"}),
+    ("transferencia", "TRANSFERENCIA", {"TRANSFERENCIA"}),
+    ("cash", "CASH", {"CASH"}),
     ("banco", "BANCO", {"BANCO"}),
     ("total", "S/. TOTAL", {"STOTAL", "TOTAL", "TOTALS"}),
 ]
@@ -101,7 +103,7 @@ def update_sales_rows_by_serial(items: list[dict[str, Any]]) -> None:
     ]
     if len(serial_matches) != 1:
         raise ValueError(
-            "La pestaña Ventas debe tener exactamente una columna SERIE."
+            "La pestaña STOCK debe tener exactamente una columna SERIE."
         )
     serial_column = serial_matches[0]
 
@@ -119,7 +121,7 @@ def update_sales_rows_by_serial(items: list[dict[str, Any]]) -> None:
         )
         if index is None:
             raise ValueError(
-                f"No se encontró la columna requerida {title} en la pestaña Ventas."
+                f"No se encontró la columna requerida {title} en la pestaña STOCK."
             )
         header_indexes[field] = index
         used_indexes.add(index)
@@ -144,8 +146,8 @@ def update_sales_rows_by_serial(items: list[dict[str, Any]]) -> None:
         matching_rows = serial_row_indexes.get(serial, [])
         if len(matching_rows) != 1:
             if not matching_rows:
-                raise ValueError(f"No se encontró la serie {serial} en la pestaña Ventas.")
-            raise ValueError(f"La serie {serial} aparece más de una vez en la pestaña Ventas.")
+                raise ValueError(f"No se encontró la serie {serial} en la pestaña STOCK.")
+            raise ValueError(f"La serie {serial} aparece más de una vez en la pestaña STOCK.")
 
         row_number = matching_rows[0]
         for field, column_index in header_indexes.items():

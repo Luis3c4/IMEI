@@ -77,10 +77,12 @@ class PaymentInfoModel(BaseModel):
     olva: Optional[float] = None
     frank: Optional[float] = None
     vendedor: Optional[str] = Field(default=None, examples=["Javi", "Roger"])
-    numero: Optional[float] = None
     precio_final: Optional[float] = None
     envio: Optional[float] = None
     accesorio: Optional[float] = None
+    billeteras: Optional[float] = None
+    transferencia: Optional[float] = None
+    cash: Optional[float] = None
     banco: Optional[str] = Field(default=None, examples=["BCP"])
     total: Optional[str] = Field(default=None, examples=["499.00"])
     titular: Optional[str] = Field(default=None, examples=["Juan Perez"])
@@ -209,11 +211,16 @@ async def generar_factura_dinamica(
         olva = payment_info.olva if payment_info else None
         frank = payment_info.frank if payment_info else None
         vendedor = _sanitize_text(payment_info.vendedor) if payment_info else None
-        numero = payment_info.numero if payment_info else None
         precio_final = payment_info.precio_final if payment_info else None
         envio = payment_info.envio if payment_info else None
         accesorio = payment_info.accesorio if payment_info else None
+        billeteras = payment_info.billeteras if payment_info else None
+        transferencia = payment_info.transferencia if payment_info else None
+        cash = payment_info.cash if payment_info else None
         banco = _sanitize_text(payment_info.banco) if payment_info else None
+        fecha_transferencia = (
+            _sanitize_text(payment_info.fecha_transferencia) if payment_info else None
+        )
         total_pagado = _parse_optional_amount(payment_info.total) if payment_info else None
 
         # Si la agencia no es OLVA, departamento/provincia no aplican
@@ -315,13 +322,15 @@ async def generar_factura_dinamica(
                     "frank": frank,
                     "vendedor": vendedor,
                     "dni": request.customer.dni,
-                    "numero": numero,
                     "cliente": request.customer.name,
                     "telefono": request.customer.phone,
-                    "fecha_venta": request.invoice_info.invoice_date,
+                    "fecha_transferencia": fecha_transferencia,
                     "precio_final": precio_final,
                     "envio": envio,
                     "accesorio": accesorio,
+                    "billeteras": billeteras,
+                    "transferencia": transferencia,
+                    "cash": cash,
                     "banco": banco,
                     "total": total_pagado,
                 }
@@ -334,7 +343,7 @@ async def generar_factura_dinamica(
         except Exception:
             sheet_saved = False
             logger.exception(
-                "No se pudo registrar la factura %s en la pestaña Ventas de Google Sheets",
+                "No se pudo registrar la factura %s en la pestaña STOCK de Google Sheets",
                 invoice_id,
             )
         
