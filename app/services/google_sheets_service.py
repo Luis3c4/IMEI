@@ -44,6 +44,7 @@ SHEET_COLUMNS = [
     ("cash", "CASH", {"CASH"}),
     ("banco", "BANCO", {"BANCO"}),
     ("total", "S/. TOTAL", {"STOTAL", "TOTAL", "TOTALS"}),
+    ("titular", "TITULAR", {"TITULAR"}),
 ]
 
 SERIAL_HEADER_ALIASES = {"SERIE", "SERIAL", "SERIENUMBER"}
