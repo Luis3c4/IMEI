@@ -69,11 +69,15 @@ class InvoiceRepository(BaseSupabaseRepository):
                 if ocr_fecha_transferencia is not None:
                     payment_data['ocr_fecha_transferencia'] = ocr_fecha_transferencia.strip()
 
-                pi_response = await client.table('invoice_payment_info').insert(payment_data).execute()
-                if pi_response.data:
-                    pi_row = pi_response.data[0]  # type: ignore
-                    assert isinstance(pi_row, dict)
-                    payment_info_id = int(pi_row['id'])  # type: ignore[arg-type]
+                pi_response = await client.table('invoice_payment_info').insert(
+                    payment_data
+                ).select('id').execute()
+                if not pi_response.data or not isinstance(pi_response.data[0], dict):
+                    return {
+                        'success': False,
+                        'error': 'No se pudo crear la información de pago de la factura'
+                    }
+                payment_info_id = int(pi_response.data[0]['id'])
 
             # ── 2. Crear la factura ──────────────────────────────────────────────────────
             invoice_data: Dict[str, Any] = {

@@ -243,6 +243,16 @@ async def generar_factura_dinamica(
                 customer_id=customer_id,
                 user_id=user_id,
                 order_number=request.order_number,
+                bank_name=banco,
+                payment_total=total_pagado,
+                payment_holder=titular,
+                shipping_agency=agencia,
+                shipping_department=departamento,
+                shipping_province=provincia,
+                ocr_numero_operacion=(
+                    _sanitize_text(payment_info.numero_operacion) if payment_info else None
+                ),
+                ocr_fecha_transferencia=fecha_transferencia,
             )
         
         if not invoice_result['success']:
