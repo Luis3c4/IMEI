@@ -31,7 +31,7 @@ SHEET_COLUMNS = [
     ("agencia", "AGENCIA", {"AGENCIA"}),
     ("olva", "OLVA", {"OLVA"}),
     ("frank", "FRANK", {"FRANK"}),
-    ("vendedor", "VEND.", {"VEND", "VENDEDOR"}),
+    ("vendedor", "VEND.", {"VEND"}),
     ("dni", "DNI", {"DNI"}),
     ("cliente", "CLIENTE", {"CLIENTE", "NOMBRECLIENTE"}),
     ("telefono", "TELEFONO", {"TELEFONO", "TELEFONOCLIENTE", "PHONE"}),
