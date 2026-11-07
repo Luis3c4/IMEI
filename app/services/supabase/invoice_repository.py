@@ -410,7 +410,7 @@ class InvoiceRepository(BaseSupabaseRepository):
             products_response = await client.table('invoice_products').select(
                 '*,' 
                 'products(id, name, category),' 
-                'product_variants(id, color, capacity, price),'
+                'product_variants(id, color, capacity, price, model_description),'
                 'product_items(id, serial_number, product_number, imei1, imei2)'
             ).eq('invoice_id', invoice_id).order('id').execute()
             
@@ -442,7 +442,7 @@ class InvoiceRepository(BaseSupabaseRepository):
                     'imei1': item_dict.get('imei1'),  # Resolved via FK JOIN (solo iPhone)
                     'imei2': item_dict.get('imei2'),  # Resolved via FK JOIN (solo iPhone)
                     # Datos de JOIN (product_id es requerido, siempre existe)
-                    'name': products_dict.get('name'),
+                    'name': variants_dict.get('model_description') or products_dict.get('name'),
                     'category': products_dict.get('category'),
                     'color': variants_dict.get('color'),
                     'capacity': variants_dict.get('capacity'),
