@@ -188,7 +188,9 @@ class InvoiceRepository(BaseSupabaseRepository):
             return {'success': False, 'error': 'Cliente de Supabase no inicializado'}
         
         try:
-            response = await client.table('invoices').select('*').eq(
+            response = await client.table('invoices').select(
+                '*, invoice_products(products(category, name))'
+            ).eq(
                 'customer_id', customer_id
             ).order('created_at', desc=True).execute()
             

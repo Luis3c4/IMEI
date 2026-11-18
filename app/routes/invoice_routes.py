@@ -3,7 +3,7 @@ Rutas para generación de facturas PDF estilo Apple Store
 """
 from datetime import datetime
 import logging
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from typing import List, Optional
@@ -96,7 +96,7 @@ class InvoiceRequest(BaseModel):
     order_number: str = Field(..., examples=["W1351042737"])
     customer: CustomerModel
     products: List[ProductModel]
-    include_imei: bool = Field(default=True, description="Incluir IMEI de iPhones en el PDF")
+    include_imei: bool = Field(default=False, description="Incluir IMEI de iPhones en el PDF")
     invoice_info: InvoiceInfoModel
     payment_info: Optional[PaymentInfoModel] = None
 
@@ -107,6 +107,10 @@ def _sanitize_text(value: Optional[str]) -> Optional[str]:
         return None
     cleaned = value.strip()
     return cleaned or None
+
+
+def _is_iphone_product(category: Optional[str], name: Optional[str]) -> bool:
+    return 'iphone' in f"{category or ''} {name or ''}".lower()
 
 
 def _parse_optional_amount(value: Optional[str]) -> Optional[float]:
@@ -402,7 +406,23 @@ async def listar_facturas_por_cliente(
         # No encontradas no es un error — puede que el cliente aún no tenga facturas
         invoices = result.get('data', []) if result['success'] else []
 
-        return {"success": True, "data": invoices}
+        invoices_with_iphone = []
+        for invoice in invoices:
+            has_iphone = any(
+                isinstance(invoice_product, dict)
+                and isinstance(invoice_product.get('products'), dict)
+                and _is_iphone_product(
+                    invoice_product['products'].get('category'),
+                    invoice_product['products'].get('name'),
+                )
+                for invoice_product in (invoice.get('invoice_products') or [])
+            )
+            invoices_with_iphone.append({
+                **{key: value for key, value in invoice.items() if key != 'invoice_products'},
+                'has_iphone': has_iphone,
+            })
+
+        return {"success": True, "data": invoices_with_iphone}
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error listando facturas: {str(e)}")
@@ -411,6 +431,7 @@ async def listar_facturas_por_cliente(
 @router.get("/{invoice_id}/pdf")
 async def regenerar_factura_pdf(
     invoice_id: int,
+    include_imei: bool = Query(default=False),
     user_id: str = Depends(get_current_user_id)
 ):
     """
@@ -440,20 +461,20 @@ async def regenerar_factura_pdf(
         }
 
         # Reconstruir lista de productos para el PDF
-        products_for_pdf = [
-            {
-                'name': p.get('name', ''),
-                'product_number': p.get('product_number', ''),
-                'serial_number': p.get('serial_number', ''),
-                'imei1': p.get('imei1', ''),
-                'imei2': p.get('imei2', ''),
-                'item_price': p.get('unit_price', 0),
-                'extended_price': p.get('extended_price', 0),
+        products_for_pdf = []
+        for product in products:
+            is_iphone = _is_iphone_product(product.get('category'), product.get('name'))
+            products_for_pdf.append({
+                'name': product.get('name', ''),
+                'product_number': product.get('product_number', ''),
+                'serial_number': product.get('serial_number', ''),
+                'imei1': product.get('imei1', '') if include_imei and is_iphone else '',
+                'imei2': product.get('imei2', '') if include_imei and is_iphone else '',
+                'item_price': product.get('unit_price', 0),
+                'extended_price': product.get('extended_price', 0),
                 'quantity_ordered': 1,
                 'quantity_fulfilled': 1,
-            }
-            for p in products
-        ]
+            })
 
         # order_number: usar el guardado; fallback a invoice_number para facturas legacy
         order_number = invoice.get('order_number') or f"W{str(int(datetime.now().timestamp() * 1000))[-10:]}"
