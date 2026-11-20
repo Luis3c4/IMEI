@@ -151,8 +151,14 @@ def update_sales_rows_by_serial(items: list[dict[str, Any]]) -> None:
             raise ValueError(f"La serie {serial} aparece más de una vez en la pestaña STOCK.")
 
         row_number = matching_rows[0]
+        is_office = str(item.get("agencia") or "").strip().upper() == "OFICINA"
         for field, column_index in header_indexes.items():
-            value = item.get(field)
+            value = (
+                "LIMA"
+                if is_office
+                and field in {"departamento", "provincia", "provincia_adicional"}
+                else item.get(field)
+            )
             cell = rowcol_to_a1(row_number, column_index + 1)
             planned_updates.append({
                 "range": cell,
